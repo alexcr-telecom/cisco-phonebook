@@ -1,11 +1,8 @@
 <?php
-$servername = "localhost";
-$username = "darkzbaron";
-$password = "Password6*";
-$dbname = "asterisk";
+require_once "config.php";
 
 // Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($servername, $dbuser, $dbpass, $dbname);
 // Check connection
 if ($conn->connect_error) {
      die("Connection failed: " . $conn->connect_error);

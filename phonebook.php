@@ -54,7 +54,7 @@ function handle_error($device='NONE')
 function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
 {
     $outStr = "";
-    $DB = db_connect($dbhost, $dbuser, $dbpass, $email, $debug);
+    $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
     if (!$DB) {
         handle_error();
         exit();
