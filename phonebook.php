@@ -1,11 +1,12 @@
 <?php
-require_once "header.php";
-require_once "DBConnect.php";
+require_once (dirname(__FILE__) . "/lib/header.php");
+require_once (dirname(__FILE__) . "/conf/config.php");
+require_once (dirname(__FILE__) . "/lib/DBConnect.php");
 
 function main_menu($device='NONE')
 {
-?>
-<CiscoIPPhoneMenu>
+    $outstr = 
+"<CiscoIPPhoneMenu>
         <Title>Company Services</Title>
         <Prompt>Please select one</Prompt>
         <MenuItem>
@@ -20,14 +21,14 @@ function main_menu($device='NONE')
                 <Name>View Directory Backwards</Name>
                 <URL>phonebook.php?action=company&amp;order=reverse&amp;device=$device</URL>
         </MenuItem>
-</CiscoIPPhoneMenu>
-<?php
+</CiscoIPPhoneMenu>\n";
+    print($outstr);
 }
 
 function search_menu($device='NONE')
 {
-?>
-<CiscoIPPhoneInput>
+    $outstr = 
+"<CiscoIPPhoneInput>
         <Prompt>Enter first letters to search</Prompt>
         <URL>phonebook.php?action=search</URL>
         <InputItem>
@@ -36,34 +37,33 @@ function search_menu($device='NONE')
                 <DefaultValue></DefaultValue>
                 <InputFlags>A</InputFlags>
         </InputItem>
-</CiscoIPPhoneInput>"
-<?php
+</CiscoIPPhoneInput>\n";
+    print($outstr);
 }
 
-function handle_error($device='NONE')
+function handle_error($error='', $device='NONE')
 {
-?>
-<CiscoIPPhoneMenu>
+    $outstr = 
+"<CiscoIPPhoneMenu>
         <Title>Company Services</Title>
-        <Prompt>Error Occurred</Prompt>
-        <URL>phonebook.php</URL>
-</CiscoIPPhoneMenu>
-<?php
+        <Prompt>Error Occurred: " . $error . "</Prompt>
+        <URL>phonebook.php?name=$device</URL>
+</CiscoIPPhoneMenu>\n";
+    print($outstr);
 }
 
 function convert_result2directory($resultset, $qrystr, $page)
 {
     $outStr = "";
-    $numrows = mysql_num_rows($resultset);
+    $numrows = mysqli_num_rows($resultset);
     if ($numrows == 0) {
-        echo "No rows found, nothing to print so am exiting";
-        handle_error();
+        handle_error('No Results', $device);
         exit();
     }
     $outstr .= "<CiscoIPPhoneDirectory>\n";
     $outstr .= "<Title>Search Directory for '$searchname'</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
-    while ($row = mysql_fetch_assoc($resultset)) {
+    while ($row = mysqli_fetch_assoc($resultset)) {
         $outstr .= "<DirectoryEntry>";
         $outstr .= "  <Name>" . $row['name'] . "</Name>";
         $outstr .= "  <Telephone>" . $row['phonenumber'] . "</Telephone>";
@@ -96,54 +96,65 @@ function convert_result2directory($resultset, $qrystr, $page)
 
 function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
 {
-    $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-    if (!$DB) {
-        handle_error();
-        exit();
+    global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
+    try {
+        $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
+        if (!$DB) {
+            handle_error('Could not connect to DB', $device);
+            exit();
+        }
+        // prevent injection
+        $searchname = mysqli_real_escape_string($searchname);
+        $page = mysqli_real_escape_string($page);
+        $order = mysqli_real_escape_string($order);
+        
+        $stmt = $DB->prepare($searchQry);				   		// use prepared query string
+        $stmt->bind_param($searchname, $order, ($page * $limit), $limit);		// insert variables
+        $qrystr = "action=search&searchname=$searchname&order=$order&name=$device";
+        $resultset = $stmt->execute();
+        
+        print convert_result2directory($resultset, $qrystr, $page);
+    } catch (Exception $e) {
+        handle_error($e->getMessage(), $device);
     }
-    // prevent injection
-    $searchname = mysql_real_escape_string($searchname);
-    $page = mysql_real_escape_string($page);
-    $order = mysql_real_escape_string($order);
-    
-    $stmt = $DB->prepare($searchQry);				   		// use prepared query string
-    $stmt->bind_param($searchname, $order, ($page * $limit), $limit);		// insert variables
-    $qrystr = "action=search&searchname=$searchname&order=$order&name=$device";
-    $resultset = $stmt->execute();
-    
-    print convert_result2directory($resultset, $qrystr, $page);
 }
 
 function browse_company($device='NONE', $page=0, $order='ASC')
 {
-    $outStr = "";
-    $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-    if (!$DB) {
-        handle_error();
-        exit();
-    }
-    // prevent injection
-    $searchname = mysql_real_escape_string($searchname);
-    $page = mysql_real_escape_string($page);
-    $order = mysql_real_escape_string($order);
-    
-    $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-    $stmt->bind_param($order, ($page * $limit), $limit);			// insert variables
-    $qrystr = "action=company&searchname=$searchname&order=$order&name=$device";
-    $resultset = $stmt->execute();
+    global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
+    try {
+        $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
+        if (!$DB) {
+            handle_error('Could not connect to DB', $device);
+            exit();
+        }
+        // prevent injection
+        $searchname = mysqli_real_escape_string($searchname);
+        $page = mysqli_real_escape_string($page);
+        $order = mysqli_real_escape_string($order);
+        
+        $stmt = $DB->prepare($companyQry);				   		// use prepared query string
+        $stmt->bind_param($order, ($page * $limit), $limit);			// insert variables
+        $qrystr = "action=company&searchname=$searchname&order=$order&name=$device";
+        $resultset = $stmt->execute();
 
-    print convert_result2directory($resultset, $qrystr, $page);
+        print convert_result2directory($resultset, $qrystr, $page);
+    } catch (Exception $e) {
+        handle_error($e->getMessage(), $device);
+    }
 }
 
 // MAIN
-$action = @$_REQUEST['action'] ?: 'mainmenu';
+#$action = @$_REQUEST['action'] ?: 'mainmenu';
+$action = @$_REQUEST['action'] ?: 'search';
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
 switch($action) {
     case "search":
-        $searchname = @$_REQUEST['searchname'] ?: 'NONE';
-        $searchname = @$_REQUEST['page'] ?: 0;
-        $searchname = @$_REQUEST['order'] ?: 'ASC';
+        #$searchname = @$_REQUEST['searchname'] ?: 'NONE';
+        $searchname = @$_REQUEST['searchname'] ?: 'diederik';
+        $page = @$_REQUEST['page'] ?: 0;
+        $order = @$_REQUEST['order'] ?: 'ASC';
         if ($searchname == "NONE") {
             search_menu($device);
         } else {
@@ -152,8 +163,8 @@ switch($action) {
         break;
 
     case "company":
-        $searchname = @$_REQUEST['page'] ?: 0;
-        $searchname = @$_REQUEST['order'] ?: 'ASC';
+        $page = @$_REQUEST['page'] ?: 0;
+        $order = @$_REQUEST['order'] ?: 'ASC';
         browse_company($device, $page, $order);
         break;
         
