@@ -64,8 +64,8 @@ function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
     $page = mysql_real_escape_string($page);
     $order = mysql_real_escape_string($order);
     
-    $stmt = $DB->prepare($searchQry);				   // use prepared query string
-    $stmt->bind_param($searchname, $order, $page, $limit);	   // insert variables
+    $stmt = $DB->prepare($searchQry);				   		// use prepared query string
+    $stmt->bind_param($searchname, $order, ($page * $limit), $limit);		// insert variables
     $resultset = $stmt->execute();
     $numrows = mysql_num_rows($resultset);
     if ($numrows == 0) {
@@ -91,7 +91,7 @@ function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
         $outStr .= "  <URL>phonebook.php?action=search&amp;searchname=" . htmlentities($searchname) . "%amp;order=" . $order . "&amp;page=" . $page ."</URL>";
         $outstr .= "</SoftKeyItem>";
     }
-    if ($numrows == $limit){
+    if ($numrows >= $limit){
         $outstr .= "<SoftKeyItem>";
         $outstr .= "  <Name>Next</Name>";
         $outStr .= "  <Position>2</Position>";
