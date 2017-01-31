@@ -1,7 +1,8 @@
 <?php
+require_once "config.php";
 
 #This function will connect to the database
-function db_connect($HostName="192.168.0.200", $UserName="root", $PassWord="", $DBName="asterisk", $SendErrorEmailTo="mail@mail.net", $Debug=0) {
+function db_connect($HostName="localhost", $UserName="root", $PassWord="", $DBName="asterisk", $SendErrorEmailTo="root@localhost", $Debug=0) {
 
 	### Try to connect to the db server if we fail send an email and break
 	$MyConnection = mysql_connect($HostName, $UserName, $PassWord);
@@ -23,5 +24,4 @@ function db_connect($HostName="192.168.0.200", $UserName="root", $PassWord="", $
 		return $MyConnection;
 	}
 }
-
 ?>
