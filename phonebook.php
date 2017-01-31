@@ -103,16 +103,17 @@ function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
             handle_error('Could not connect to DB', $device);
             exit();
         }
-        // prevent injection
-        $searchname = mysqli_real_escape_string($searchname);
-        $page = mysqli_real_escape_string($page);
-        $order = mysqli_real_escape_string($order);
+        $searchname = $DB->escape_string($searchname);					// prevent SQL injection
+        $page = $DB->escape_string($page);
+        $order = $DB->escape_string($order);
         
         $stmt = $DB->prepare($searchQry);				   		// use prepared query string
         $stmt->bind_param($searchname, $order, ($page * $limit), $limit);		// insert variables
+        if (!($resultset = $stmt->execute())) {
+            handle_error('Result Set is Empty', $device);
+            exit();
+        }
         $qrystr = "action=search&searchname=$searchname&order=$order&name=$device";
-        $resultset = $stmt->execute();
-        
         print convert_result2directory($resultset, $qrystr, $page);
     } catch (Exception $e) {
         handle_error($e->getMessage(), $device);
@@ -128,16 +129,17 @@ function browse_company($device='NONE', $page=0, $order='ASC')
             handle_error('Could not connect to DB', $device);
             exit();
         }
-        // prevent injection
-        $searchname = mysqli_real_escape_string($searchname);
-        $page = mysqli_real_escape_string($page);
-        $order = mysqli_real_escape_string($order);
+        $searchname = $DB->escape_string($searchname);					// prevent SQL injection
+        $page = $DB->escape_string($page);
+        $order = $DB->escape_string($order);
         
         $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-        $stmt->bind_param($order, ($page * $limit), $limit);			// insert variables
+        $stmt->bind_param($order, ($page * $limit), $limit);				// insert variables
+        if (!($resultset = $stmt->execute())) {
+            handle_error('Result Set is Empty', $device);
+            exit();
+        }
         $qrystr = "action=company&searchname=$searchname&order=$order&name=$device";
-        $resultset = $stmt->execute();
-
         print convert_result2directory($resultset, $qrystr, $page);
     } catch (Exception $e) {
         handle_error($e->getMessage(), $device);
@@ -145,14 +147,12 @@ function browse_company($device='NONE', $page=0, $order='ASC')
 }
 
 // MAIN
-#$action = @$_REQUEST['action'] ?: 'mainmenu';
-$action = @$_REQUEST['action'] ?: 'search';
+$action = @$_REQUEST['action'] ?: 'mainmenu';
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
 switch($action) {
     case "search":
-        #$searchname = @$_REQUEST['searchname'] ?: 'NONE';
-        $searchname = @$_REQUEST['searchname'] ?: 'diederik';
+        $searchname = @$_REQUEST['searchname'] ?: 'NONE';
         $page = @$_REQUEST['page'] ?: 0;
         $order = @$_REQUEST['order'] ?: 'ASC';
         if ($searchname == "NONE") {
