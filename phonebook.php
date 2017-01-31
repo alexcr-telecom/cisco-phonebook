@@ -94,15 +94,11 @@ function convert_result2directory($resultset, $qrystr, $page)
     return $outStr;
 }
 
-function search_results($device='NONE', $searchname='', $page=0, $order='ASC')
+function search_results($device='NONE', $searchname, $page=0, $order='ASC')
 {
     global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
     try {
         $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-        if (!$DB) {
-            handle_error('Could not connect to DB', $device);
-            exit();
-        }
         $searchname = $DB->escape_string($searchname);					// prevent SQL injection
         $page = $DB->escape_string($page);
         $order = $DB->escape_string($order);
@@ -125,10 +121,6 @@ function browse_company($device='NONE', $page=0, $order='ASC')
     global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
     try {
         $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-        if (!$DB) {
-            handle_error('Could not connect to DB', $device);
-            exit();
-        }
         $searchname = $DB->escape_string($searchname);					// prevent SQL injection
         $page = $DB->escape_string($page);
         $order = $DB->escape_string($order);
