@@ -9,6 +9,6 @@
   $limit = 32;
   
   # query definitions
-  $searchQry = "SELECT number as phonenumber, name as name WHERE name='?' ORDER BY name ? LIMIT(?, ?);";
-  $companyQry = "SELECT number as phonenumber, name as name ORDER BY name ? LIMIT(?, ?);";
+  $searchQry = "SELECT number as phonenumber, name as name FROM $dbtable WHERE name='?' ORDER BY name ? LIMIT(?, ?);";
+  $companyQry = "SELECT number as phonenumber, name as name FROM $dbtable ORDER BY name ? LIMIT(?, ?);";
 ?>
