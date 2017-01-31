@@ -1,0 +1,17 @@
+
+<CiscoIPPhoneMenu>
+	<Title>Company Services</Title>
+	<Prompt>Please select one</Prompt>
+	<MenuItem>
+		<Name>Search Company Directory</Name>
+		<URL>http://192.168.0.200/Ciscodirectory/searchDirectory.xml</URL>
+	</MenuItem>
+	<MenuItem>
+		<Name>View Company Directory</Name>
+		<URL>http://192.168.0.200/Ciscodirectory/companyDirectory.php</URL>
+	</MenuItem>
+	<MenuItem>
+		<Name>View Directory Backwards</Name>
+		<URL>http://192.168.0.200/Ciscodirectory/companyDirectory.php?desc=true</URL>
+	</MenuItem>
+</CiscoIPPhoneMenu>

@@ -1,0 +1,330 @@
+Convert CISCO Firmware from SCCP to SIP
+
+1. get DHCP up and running, use DHCP option 150 to point to the TFTP server. Use isc-dhcp-server on Linux. Openwrt works also fine.
+	
+On isc-dhcp-server put this under general:
+option voip-tftp-server code 150 = ip-address;
+and in the range:
+option voip-tftp-server 192.168.2.2;
+
+On openwrt using uci you need only one line in /etc/config/dhcp under config dhcp 'lan':
+list dhcp_option '150,192.168.2.2'
+
+You may also want to use a crossover cable connecting phone straight to a Windows PC.
+In one guide i saw http://tftpd32.jounin.net/ version 3.23 was recommended under windows for both dhcp/tftp server, 
+when using dhcp option 150 the ip must be put as hex i.e. 0x0101A8C0 (for 192.168.1.1). 
+
+2. atftp under debian is not configured properly by default, set /etc/default/atftpd to:
+USE_INETD=false
+OPTIONS="--tftpd-timeout 300 --retry-timeout 5 --mcast-port 1758 --bind-address=192.168.2.2 --port=69 --maxthread 100 
+--logfile /var/log/atftpd.log --verbose=5 /srv/tftp"
+Make sure you allow read for everyone on the tftpd folder. 
+
+3. put firmware in uncompressed form to the root of tftp server. 
+Firmware is officially only available with Cisco Smartnet.
+If it is a cop file, rename it to .tar.gz and unpack it.
+   Do not use cop.sgn files, these are signed for Cisco Callmanager.
+   Firmware 9-3-1SR1 seems to be fully working. If the update fails, it maybe required to use older versions before.
+   Firmware 8-5-2 is often mentioned to be flashed before 9. And firmware 7 before 8.
+   Some guys also recommend to update SCCP firmware to 8.0.9 before changing to SIP.
+
+   filename to download: cmterm-7941_7961-sip.9-3-1SR1-1.zip
+
+4. use a xml file named XMLDefault.cnf.xml as a global file for updating all phones and put it on tftp server. Point
+   it to your .loads file. As you can see below the older 79x0 series use a different file scheme (POS..... third letter stands for SIP).
+
+<Default>
+<callManagerGroup>
+	<members>
+		<member priority="0">
+			<callManager>
+				<ports>
+					<ethernetPhonePort>2000</ethernetPhonePort>
+					<mgcpPorts>
+						<listen>2427</listen>
+						<keepAlive>2428</keepAlive>
+					</mgcpPorts>
+				</ports>
+				<processNodeName></processNodeName>
+			</callManager>
+		</member>
+	</members>
+</callManagerGroup>
+<loadInformation model="IP Phone 7941">SIP41.9-3-1SR-1S</loadInformation8>
+<loadInformation8 model="IP Phone 7940">P0S3-8-12-00</loadInformation8>
+<loadInformation7 model="IP Phone 7960">P0S3-8-12-00</loadInformation7>
+<loadInformation435 model="Cisco 7945">SIP45.8-4-2S</loadInformation435>
+<loadInformation436 model=”Cisco 7965”>SIP45.8-4-2S</loadInformation436>
+<loadInformation30006 model="IP Phone 7970">SIP70.8-0-3S</loadInformation30006>
+<authenticationURL></authenticationURL>
+<directoryURL></directoryURL>
+<idleURL></idleURL>
+<informationURL></informationURL>
+<messagesURL></messagesURL>
+<servicesURL></servicesURL>
+</Default>
+
+5. check if phone boots and updates the firmware. Check on tftp logs if the phone is downloading term.defaults file.
+The Update may take couple of minutes to complete, do not interrupt. If your phone is just displaying "update" on the display
+without running even a tftp server in your network, then something is wrong with your existing firmware or somebody cleared it.
+
+In case of issues:
+
+1. you may need to enter tftp server manually on the phone if your dhcp is not passing option 150 to the phone
+   press **# on phone to unlock, go to settings and change tftp under network configuration.
+   On other linux hosts, you will not see if dhcp option 150 is working when browsing leases folder /var/lib/dhcp/dhclient.... because option 150 will not be displayed.
+2. check if it gets an DHCP address (browse your leases) and try to ping the phone. If it doesnt get an ip but with network sniffer you
+still see cdp packages, your display is just telling "update", then you may need to erase the firmware: hold # during bootup until it flashes amber, release # and press:
+3491672850*# on 79x1 series.
+This will wipe the flash and load firmware from tftp again. By doing this way, i could flash 9-3-1SR1 in one shot, without
+flashing older versions first. On older 79x0 series press 123456789*0# 
+
+Further configuration:
+
+TFTP is also an security risk because if somebody knows the mac address of the phone
+(newer 79x1 series even display it over web without logging in), one could download configuration file of the phone from your tftp server and get your sip password.
+
+Below is an example how the configuration file one phone can look like. The file is named SEP<macaddress>.cnf.xml, put it on the tftpd server.
+
+<!-- FIXME: Change to your own phone number (or another unique ID) -->
+<device xsi:type="axl:XIPPhone" ctiid="14">
+<deviceProtocol>SIP</deviceProtocol>
+<sshUserId>admin</sshUserId>
+<sshPassword>cisco</sshPassword>
+<devicePool>
+ <dateTimeSetting>
+    <!-- FIXME: Set your preferred date format and timezone here -->
+    <dateTemplate>D/M/Ya</dateTemplate>
+    <timeZone>Central Europe Standard/Daylight Time</timeZone>
+    <ntps>
+         <!-- NTP might not actually work, but the phone can set the
+              date/time from the SIP response headers -->
+         <ntp>
+             <name>192.168.2.1</name>
+             <ntpMode>Unicast</ntpMode>
+         </ntp>
+    </ntps>
+ </dateTimeSetting>
+ 
+ <!-- This section probably does not do anything useful. -->
+ <callManagerGroup>
+    <members>
+       <member priority="0">
+          <callManager>
+             <ports>
+                <ethernetPhonePort>2000</ethernetPhonePort>
+                <sipPort>5060</sipPort>
+                <securedSipPort>5061</securedSipPort>
+             </ports>
+             <processNodeName>192.168.2.2</processNodeName>
+          </callManager>
+       </member>
+    </members>
+ </callManagerGroup>
+</devicePool>
+<sipProfile>
+ <sipProxies>
+   <registerWithProxy>true</registerWithProxy>
+ </sipProxies>
+ <sipCallFeatures>
+    <cnfJoinEnabled>true</cnfJoinEnabled>
+    <callForwardURI>x--serviceuri-cfwdall</callForwardURI>
+    <callPickupURI>x-cisco-serviceuri-pickup</callPickupURI>
+    <callPickupListURI>x-cisco-serviceuri-opickup</callPickupListURI>
+    <callPickupGroupURI>x-cisco-serviceuri-gpickup</callPickupGroupURI>
+    <meetMeServiceURI>x-cisco-serviceuri-meetme</meetMeServiceURI>
+    <abbreviatedDialURI>x-cisco-serviceuri-abbrdial</abbreviatedDialURI>
+    <rfc2543Hold>false</rfc2543Hold>
+    <callHoldRingback>2</callHoldRingback>
+    <localCfwdEnable>true</localCfwdEnable>
+    <semiAttendedTransfer>true</semiAttendedTransfer>
+    <anonymousCallBlock>2</anonymousCallBlock>
+    <callerIdBlocking>2</callerIdBlocking>
+    <dndControl>0</dndControl>
+	<!-- remoteccenable needs to be on for callfwd -->
+    <remoteCcEnable>true</remoteCcEnable>
+ </sipCallFeatures>
+ <sipStack>
+    <sipInviteRetx>6</sipInviteRetx>
+    <sipRetx>10</sipRetx>
+    <timerInviteExpires>180</timerInviteExpires>
+    <!-- Force short registration timeout 180s to keep NAT connection alive, default is 3600 -->
+    <timerRegisterExpires>3600</timerRegisterExpires>
+    <timerRegisterDelta>5</timerRegisterDelta>
+    <timerKeepAliveExpires>120</timerKeepAliveExpires>
+    <timerSubscribeExpires>120</timerSubscribeExpires>
+    <timerSubscribeDelta>5</timerSubscribeDelta>
+    <timerT1>500</timerT1>
+    <timerT2>4000</timerT2>
+    <maxRedirects>70</maxRedirects>
+    <remotePartyID>false</remotePartyID>
+    <userInfo>None</userInfo>
+ </sipStack>
+ <autoAnswerTimer>1</autoAnswerTimer>
+ <autoAnswerAltBehavior>false</autoAnswerAltBehavior>
+ <autoAnswerOverride>true</autoAnswerOverride>
+ <transferOnhookEnabled>false</transferOnhookEnabled>
+ <enableVad>false</enableVad>
+ <!-- FIXME: Codec -->
+ <preferredCodec>g729a</preferredCodec>
+<!-- preferredCodec>g711ulaw</preferredCodec -->
+ <dtmfAvtPayload>101</dtmfAvtPayload>
+ <dtmfDbLevel>3</dtmfDbLevel>
+ <dtmfOutofBand>avt</dtmfOutofBand>
+ <alwaysUsePrimeLine>false</alwaysUsePrimeLine>
+ <alwaysUsePrimeLineVoiceMail>false</alwaysUsePrimeLineVoiceMail>
+ <kpml>3</kpml>
+ <natEnabled>false</natEnabled>
+ <natAddress></natAddress>
+ <!-- FIXME: This will appear in the upper right corner of the display -->
+ <phoneLabel>14</phoneLabel>
+ <stutterMsgWaiting>1</stutterMsgWaiting>
+ <callStats>false</callStats>
+ <silentPeriodBetweenCallWaitingBursts>10</silentPeriodBetweenCallWaitingBursts>
+ <disableLocalSpeedDialConfig>false</disableLocalSpeedDialConfig>
+ <startMediaPort>16384</startMediaPort>
+ <stopMediaPort>16391</stopMediaPort>
+ <sipLines>
+    <line button="1">
+       <featureID>9</featureID>
+       <!-- FIXME: Text to display next to line button #1 -->
+       <featureLabel>14 Thomas</featureLabel>
+       <!-- FIXME: FQDN or IP of your SIP proxy -->
+       <proxy>USECALLMANAGER</proxy>
+       <port>5060</port>
+       <!-- FIXME: SIP username -->
+       <name>14</name>
+       <!-- FIXME: Name to display on outbound caller ID -->
+       <displayName>14 Thomas</displayName>
+       <autoAnswer>
+          <autoAnswerEnabled>2</autoAnswerEnabled>
+       </autoAnswer>
+       <callWaiting>3</callWaiting>
+       <!-- FIXME: SIP authorization name (often matches username) -->
+       <authName>14</authName>
+       <!-- FIXME: SIP authorization password -->
+       <authPassword>secretpassword</authPassword>
+       <sharedLine>false</sharedLine>
+       <messageWaitingLampPolicy>1</messageWaitingLampPolicy>
+       <!-- FIXME: "Messages" key will autodial this number -->
+       <messagesNumber>99</messagesNumber>
+       <ringSettingIdle>4</ringSettingIdle>
+       <ringSettingActive>5</ringSettingActive>
+       <contact></contact>
+       <forwardCallInfoDisplay>
+          <callerName>true</callerName>
+          <callerNumber>true</callerNumber>
+          <redirectedNumber>false</redirectedNumber>
+          <dialedNumber>true</dialedNumber>
+       </forwardCallInfoDisplay>
+    </line>
+	<!--
+ <line button="2">
+            <featureID>9</featureID>
+            <featureLabel>11 Monika</featureLabel>
+            <proxy>USECALLMANAGER</proxy>
+            <port>5060</port>
+            <name>11</name>
+            <displayName>11 Monika</displayName>
+            <autoAnswer>
+               <autoAnswerEnabled>2</autoAnswerEnabled>
+            </autoAnswer>
+            <callWaiting>3</callWaiting>
+            <authName>11</authName>
+            <authPassword>secretpassword</authPassword>
+            <sharedLine>true</sharedLine>
+            <messageWaitingLampPolicy>1</messageWaitingLampPolicy>
+            <messagesNumber>99</messagesNumber>
+            <ringSettingIdle>2</ringSettingIdle>
+            <ringSettingActive>2</ringSettingActive>
+            <contact></contact>
+            <forwardCallInfoDisplay>
+               <callerName>true</callerName>
+               <callerNumber>true</callerNumber>
+               <redirectedNumber>false</redirectedNumber>
+               <dialedNumber>true</dialedNumber>
+            </forwardCallInfoDisplay>
+         </line>
+		 -->
+		 
+		 <!-- line2 with BLF to show ringing state as well as inuse state  -->
+		  <line button="2">
+       <featureID>21</featureID>
+       <featureLabel>11 Monika</featureLabel>
+       <speedDialNumber>11</speedDialNumber>
+	   <featureOptionMask>1</featureOptionMask>
+    </line>
+    <!-- FIXME: Add more line buttons or speed dial entries here -->
+   </sipLines>
+ <voipControlPort>5060</voipControlPort>
+ <dscpForAudio>184</dscpForAudio>
+ <ringSettingBusyStationPolicy>0</ringSettingBusyStationPolicy>
+ <dialTemplate>dialplan.xml</dialTemplate>
+</sipProfile>
+<commonProfile>
+ <phonePassword></phonePassword>
+ <backgroundImageAccess>true</backgroundImageAccess>
+ <callLogBlfEnabled>2</callLogBlfEnabled>
+</commonProfile>
+<!-- FIXME: Change this to upgrade the firmware -->
+<!-- loadInformation>SIP41.9-3-1-1S</loadInformation -->
+<!-- loadInformation>SIP41.9-3-1SR1-1S</loadInformation -->
+<vendorConfig>
+ <disableSpeaker>false</disableSpeaker>
+ <disableSpeakerAndHeadset>false</disableSpeakerAndHeadset>
+ <pcPort>0</pcPort>
+ <settingsAccess>1</settingsAccess>
+ <garp>0</garp>
+ <voiceVlanAccess>0</voiceVlanAccess>
+ <videoCapability>0</videoCapability>
+ <autoSelectLineEnable>0</autoSelectLineEnable>
+<sshAccess>1</sshAccess>
+<sshPort>22</sshPort>
+ <webAccess>0</webAccess>
+ <!-- For Sunday (1) and Saturday (7):
+   <daysDisplayNotActive>1,2,3,4,5,6,7</daysDisplayNotActive>
+   Current default is to enable the display 24/7.
+ -->
+ <daysDisplayNotActive>1,2,3,4,5,6,7</daysDisplayNotActive>
+ <displayOnTime>00:00</displayOnTime>
+ <displayOnDuration>24:00</displayOnDuration>
+ <displayIdleTimeout>00:05</displayIdleTimeout>
+ <spanToPCPort>1</spanToPCPort>
+ <loggingDisplay>1</loggingDisplay>
+ <loadServer></loadServer>
+</vendorConfig>
+<versionStamp></versionStamp>
+<userLocale>
+ <name>English_United_States</name>
+<uid>1</uid>
+ <langCode>en_US</langCode>
+<version>1.0.0.0-1</version>
+ <winCharSet>iso-8859-1</winCharSet>
+</userLocale>
+<networkLocale>United_States</networkLocale>
+<networkLocaleInfo>
+ <name>United_States</name>
+<uid>64</uid>
+ <version>1.0.0.0-1</version>
+</networkLocaleInfo>
+<deviceSecurityMode>0</deviceSecurityMode>
+<authenticationURL></authenticationURL>
+<directoryURL>http://192.168.2.2:8081/directory/directory.xml</directoryURL>
+<idleURL></idleURL>
+<informationURL></informationURL>
+<messagesURL></messagesURL>
+<proxyServerURL></proxyServerURL>
+<servicesURL>http://filedepot.cdw.com/menu.xml</servicesURL>
+<dscpForSCCPPhoneConfig>96</dscpForSCCPPhoneConfig>
+<dscpForSCCPPhoneServices>0</dscpForSCCPPhoneServices>
+<dscpForCm2Dvce>96</dscpForCm2Dvce>
+<transportLayerProtocol>4</transportLayerProtocol>
+<capfAuthMode>0</capfAuthMode>
+<capfList>
+ <capf>
+    <phonePort>3804</phonePort>
+ </capf>
+</capfList>
+<certHash></certHash>
+<encrConfig>false</encrConfig>
+</device>
