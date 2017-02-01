@@ -1,22 +1,30 @@
 <?php
+    # Using php-pdo DSN
     # mysql
-    $dsn = 'mysql://dbuser:dbpassword@localhost/dbname';
+    $dsn = 'mysql:host=localhost;dbname=test';
     # postgresql
-    #$dsn = 'pgsql://dbuser:dbpassword@localhost/dbname';
-    #$dsn = 'pgsql://dbuser:dbpassword@unix(/var/run/postgresql/.s.PGSQL.5432)/dbname';
+    #$dsn = 'pgsql:host=localhost;dbname=test";
     # sqlite3
-    #$dsn = array('phptype'  => 'sqlite', 'database' => 'dbname', 'mode'     => '0644');
-
-    # see: http://pear.php.net/manual/en/package.database.mdb2.intro-connect.php for more DSN examples
+    #$dsn = 'sqlite3:host=localhost;dbname=test";
+    $dbuser = "test";
+    $dbpass = "pwd";
 
     $email = "root@localhost";
-    $dbtable = "phonebook";
     $debug = 2;
     $output_limit = 32;
 
     # query definitions
-    $searchQry = "SELECT number as phonenumber, name as name FROM $dbtable WHERE name='?' ORDER BY name (?) LIMIT(?, ?);";
-    $companyQry = "SELECT number as phonenumber, name as name FROM $dbtable ORDER BY name (?) LIMIT(?, ?);";
+    $searchQry = "SELECT info as phonenumber, concat(firstname,lastname) as contact_name 
+                    FROM contact
+                    LEFT JOIN contactinfo ON contactinfo.contact_id=contact.id
+                    WHERE contact_name LIKE ':searchname' 
+                    ORDER BY name (:ordering) 
+                    LIMIT(:offset, :max);";
+
+    $companyQry = "SELECT concat(firstname,lastname) as contact_name 
+                    FROM contact
+                    ORDER BY name (:ordering) 
+                    LIMIT(:offset, :max);";
 
     # defaults
     $default_action = "mainmenu";

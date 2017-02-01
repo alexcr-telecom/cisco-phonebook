@@ -1,7 +1,7 @@
 <?php
 require_once (dirname(__FILE__) . "/lib/header.php");
 require_once (dirname(__FILE__) . "/conf/config.php");
-require_once (dirname(__FILE__) . "/lib/DBConnect.php");
+require_once (dirname(__FILE__) . "/lib/pdo.php");
 
 function main_menu($device='NONE')
 {
@@ -41,48 +41,36 @@ function search_menu($device='NONE')
     print($outstr);
 }
 
-function handle_error($error='', $device='NONE')
-{
-    $outstr = 
-"<CiscoIPPhoneMenu>
-        <Title>Company Services</Title>
-        <Prompt>Error Occurred: " . $error . "</Prompt>
-        <URL>phonebook.php?name=$device</URL>
-</CiscoIPPhoneMenu>\n";
-    print($outstr);
-}
-
-function convert_result2directory($resultset, $qrystr, $page)
+function convert_result2directory($resultset, $paramstr, $page)
 {
     $outStr = "";
-    $numrows = $resultset->numRows();
+    $numrows = count($resultset);
     if ($numrows == 0) {
-        handle_error('No Results', $device);
+        throw new Exception('No Results');
         exit();
     }
     $outstr .= "<CiscoIPPhoneDirectory>\n";
     $outstr .= "<Title>Search Directory for '$searchname'</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
-    while ($row =& $resultset->fetchRow()) {
+    foreach($resultset as $row) {
         $outstr .= "<DirectoryEntry>";
         $outstr .= "  <Name>" . $row['name'] . "</Name>";
         $outstr .= "  <Telephone>" . $row['phonenumber'] . "</Telephone>";
         $outstr .= "</DirectoryEntry>";
     }
-    $stmt->close();
 
     if ($page != 0) {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "  <Name>Prev</Name>";
         $outStr .= "  <Position>1</Position>";
-        $outStr .= "  <URL>phonebook.php?" . htmlentities($qrystr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outStr .= "  <URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
         $outstr .= "</SoftKeyItem>";
     }
     if ($numrows >= $limit){
         $outstr .= "<SoftKeyItem>";
         $outstr .= "  <Name>Next</Name>";
         $outStr .= "  <Position>2</Position>";
-        $outStr .= "  <URL>phonebook.php?" . htmlentities($qrystr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outStr .= "  <URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
         $outstr .= "</SoftKeyItem>";
     }
     $outstr .= "<SoftKeyItem>";
@@ -96,51 +84,41 @@ function convert_result2directory($resultset, $qrystr, $page)
 
 function search_results($device='NONE', $searchname, $page=0, $order='ASC')
 {
-    global $searchQry;
-    try {
-        $DB = db_connect();
-        $stmt = $DB->prepare($searchQry);				   		// use prepared query string
-        if (PEAR::isError($stmt)) {
-            handle_error('Error during query preparation:\n' . $stmt->getMessage(), $device);
-            die();
-        }
-        $resultset = & $DB->execute($stmt, $DB->escapeSimple($searchname), $order, ($page * $limit), $limit);
-        if (PEAR::isError($stmt)) {
-            handle_error('Could not get result set:\n' . $resultset->getMessage(), $device);
-            die();
-        }
-        $qrystr = "action=search&searchname=$searchname&order=$order&name=$device";
-        print convert_result2directory($resultset, $qrystr, $page);
-        $DB->freePrepared($stmt);
-        $DB->disconnect();
-    } catch (Exception $e) {
-        handle_error($e->getMessage(), $device);
-        $DB->disconnect();
-    }
+    global $searchQry, $output_limit;
+    $DB = db_connect();
+    $stmt = $DB->prepare($searchQry);				   		// use prepared query string
+    
+    $stmt->bindParam(':searchname', $searchname, PDO::PARAM_STR);
+    $stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
+    #$stmt->bindParam(':offset', ($page * $output_limit), PDO::PARAM_INT);
+    $stmt->bindParam(':max', $output_limit, PDO::PARAM_INT);
+    
+    $stmt->execute();
+    $resultset = $stmt->fetchAll();
+    
+    $paramstr = "action=search&searchname=$searchname&order=$order&name=$device";
+    print convert_result2directory($resultset, $paramstr, $page);
+    $stmt=NULL;
+    $DB = NULL;
 }
 
 function browse_company($device='NONE', $page=0, $order='ASC')
 {
-    global $companyQry; 
-    try {
-        $DB = db_connect();
-        $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-        if (PEAR::isError($stmt)) {
-            handle_error('Error during query preparation:\n' . $stmt->getMessage(), $device);
-            die();
-        }
-        $resultset = & $DB->execute($stmt, $order, ($page * $limit), $limit);
-        if (PEAR::isError($stmt)) {
-            handle_error('Could not get result set:\n' . $resultset->getMessage(), $device);
-            die();
-        }
-        $qrystr = "action=company&searchname=$searchname&order=$order&name=$device";
-        print convert_result2directory($resultset, $qrystr, $page);
-        $DB->disconnect();
-    } catch (Exception $e) {
-        handle_error($e->getMessage(), $device);
-        $DB->disconnect();
-    }
+    global $companyQry, $output_limit; 
+    $DB = db_connect();
+    $stmt = $DB->prepare($companyQry);				   		// use prepared query string
+    
+    $stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
+    #$stmt->bindParam(':offset', ($page * $output_limit), PDO::PARAM_INT);
+    $stmt->bindParam(':max', $output_limit, PDO::PARAM_INT);
+    
+    $stmt->execute();
+    $resultset = $stmt->fetchAll();
+
+    $paramstr = "action=company&searchname=$searchname&order=$order&name=$device";
+    print convert_result2directory($resultset, $paramstr, $page);
+    $stmt=NULL;
+    $DB = NULL;
 }
 
 // MAIN

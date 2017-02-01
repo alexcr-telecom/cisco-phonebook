@@ -14,4 +14,3 @@ CREATE TABLE IF NOT EXISTS contactinfo (
   PRIMARY KEY (contact_id, type, info),
   FOREIGN KEY (contact_id) REFERENCES contact(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=INNODB DEFAULT CHARSET=latin1;
-
