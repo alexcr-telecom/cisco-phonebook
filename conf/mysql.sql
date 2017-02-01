@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS person (
+CREATE TABLE IF NOT EXISTS contact (
   id MEDIUMINT NOT NULL AUTO_INCREMENT,
   firstname VARCHAR(15) DEFAULT NULL,
   lastname VARCHAR(15) DEFAULT NULL,
@@ -7,11 +7,11 @@ CREATE TABLE IF NOT EXISTS person (
   KEY lastname  (lastname)
 ) ENGINE=INNODB DEFAULT CHARSET=latin1;
 
-CREATE TABLE IF NOT EXISTS phonenumbers (
-  person_id MEDIUMINT NOT NULL,
-  type ENUM('home','work','mobile','other') DEFAULT 'home',
-  phonenumber VARCHAR(20) DEFAULT NULL,
-  PRIMARY KEY (person_id, type, phonenumber),
-  FOREIGN KEY (person_id) REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE
+CREATE TABLE IF NOT EXISTS contactinfo (
+  contact_id MEDIUMINT NOT NULL,
+  type ENUM('homephone','workphone','mobilephone','otherphone','email', other) DEFAULT 'home',
+  info VARCHAR(20) DEFAULT NULL,
+  PRIMARY KEY (contact_id, type, info),
+  FOREIGN KEY (contact_id) REFERENCES contact(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=INNODB DEFAULT CHARSET=latin1;
 

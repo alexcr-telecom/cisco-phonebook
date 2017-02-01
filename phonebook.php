@@ -55,7 +55,7 @@ function handle_error($error='', $device='NONE')
 function convert_result2directory($resultset, $qrystr, $page)
 {
     $outStr = "";
-    $numrows = mysqli_num_rows($resultset);
+    $numrows = $resultset->numRows();
     if ($numrows == 0) {
         handle_error('No Results', $device);
         exit();
@@ -63,7 +63,7 @@ function convert_result2directory($resultset, $qrystr, $page)
     $outstr .= "<CiscoIPPhoneDirectory>\n";
     $outstr .= "<Title>Search Directory for '$searchname'</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
-    while ($row = mysqli_fetch_assoc($resultset)) {
+    while ($row =& $resultset->fetchRow()) {
         $outstr .= "<DirectoryEntry>";
         $outstr .= "  <Name>" . $row['name'] . "</Name>";
         $outstr .= "  <Telephone>" . $row['phonenumber'] . "</Telephone>";
@@ -96,55 +96,60 @@ function convert_result2directory($resultset, $qrystr, $page)
 
 function search_results($device='NONE', $searchname, $page=0, $order='ASC')
 {
-    global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
+    global $searchQry;
     try {
-        $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-        $searchname = $DB->escape_string($searchname);					// prevent SQL injection
-        $page = $DB->escape_string($page);
-        $order = $DB->escape_string($order);
-        
+        $DB = db_connect();
         $stmt = $DB->prepare($searchQry);				   		// use prepared query string
-        $stmt->bind_param($searchname, $order, ($page * $limit), $limit);		// insert variables
-        if (!($resultset = $stmt->execute())) {
-            handle_error('Result Set is Empty', $device);
-            exit();
+        if (PEAR::isError($stmt)) {
+            handle_error('Error during query preparation:\n' . $stmt->getMessage(), $device);
+            die();
+        }
+        $resultset = & $DB->execute($stmt, $DB->escapeSimple($searchname), $order, ($page * $limit), $limit);
+        if (PEAR::isError($stmt)) {
+            handle_error('Could not get result set:\n' . $resultset->getMessage(), $device);
+            die();
         }
         $qrystr = "action=search&searchname=$searchname&order=$order&name=$device";
         print convert_result2directory($resultset, $qrystr, $page);
+        $DB->freePrepared($stmt);
+        $DB->disconnect();
     } catch (Exception $e) {
         handle_error($e->getMessage(), $device);
+        $DB->disconnect();
     }
 }
 
 function browse_company($device='NONE', $page=0, $order='ASC')
 {
-    global $dbhost, $dbuser, $dbpass, $dbname, $email, $debug;
+    global $companyQry; 
     try {
-        $DB = db_connect($dbhost, $dbuser, $dbpass, $dbname, $email, $debug);
-        $searchname = $DB->escape_string($searchname);					// prevent SQL injection
-        $page = $DB->escape_string($page);
-        $order = $DB->escape_string($order);
-        
+        $DB = db_connect();
         $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-        $stmt->bind_param($order, ($page * $limit), $limit);				// insert variables
-        if (!($resultset = $stmt->execute())) {
-            handle_error('Result Set is Empty', $device);
-            exit();
+        if (PEAR::isError($stmt)) {
+            handle_error('Error during query preparation:\n' . $stmt->getMessage(), $device);
+            die();
+        }
+        $resultset = & $DB->execute($stmt, $order, ($page * $limit), $limit);
+        if (PEAR::isError($stmt)) {
+            handle_error('Could not get result set:\n' . $resultset->getMessage(), $device);
+            die();
         }
         $qrystr = "action=company&searchname=$searchname&order=$order&name=$device";
         print convert_result2directory($resultset, $qrystr, $page);
+        $DB->disconnect();
     } catch (Exception $e) {
         handle_error($e->getMessage(), $device);
+        $DB->disconnect();
     }
 }
 
 // MAIN
-$action = @$_REQUEST['action'] ?: 'mainmenu';
+$action = @$_REQUEST['action'] ?: $default_action;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
 switch($action) {
     case "search":
-        $searchname = @$_REQUEST['searchname'] ?: 'NONE';
+        $searchname = @$_REQUEST['searchname'] ?: $default_searchname;
         $page = @$_REQUEST['page'] ?: 0;
         $order = @$_REQUEST['order'] ?: 'ASC';
         if ($searchname == "NONE") {
