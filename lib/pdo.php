@@ -21,12 +21,16 @@ function exception_handler($exception)
 
 set_exception_handler('exception_handler');
 
-function db_connect()
-{
-    global $dsn, $debug, $dbuser, $dbpass;
+Class MyPDO extends PDO {
 
-    $DB = new PDO($dsn, $dbuser, $dbpass);
-    
-    return $DB;
+    public function __construct()
+    {
+        global $dsn, $dbuser, $dbpass;
+        if ($dbuser != "") {
+            parent::__construct($dsn, $dbuser, $dbpass);
+        } else {
+            parent::__construct($dsn);
+        }
+    }
 }
 ?>

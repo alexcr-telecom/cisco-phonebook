@@ -41,63 +41,65 @@ function search_menu($device='NONE')
     print($outstr);
 }
 
-function convert_result2directory($resultset, $paramstr, $page)
+function convert_result2directory($resultset, $title, $paramstr, $page)
 {
-    $outStr = "";
+    global $output_limit;
+    $outstr = "";
     $numrows = count($resultset);
     if ($numrows == 0) {
         throw new Exception('No Results');
         exit();
     }
     $outstr .= "<CiscoIPPhoneDirectory>\n";
-    $outstr .= "<Title>Search Directory for '$searchname'</Title>\n";
+    $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     foreach($resultset as $row) {
         $outstr .= "<DirectoryEntry>";
-        $outstr .= "  <Name>" . $row['name'] . "</Name>";
-        $outstr .= "  <Telephone>" . $row['phonenumber'] . "</Telephone>";
-        $outstr .= "</DirectoryEntry>";
+        $outstr .= "<Name>" . $row['firstname'] . ' ' . $row['lastname'] . "</Name>";
+        $outstr .= "<Telephone>" . $row['phonenumber'] . "</Telephone>";
+        $outstr .= "</DirectoryEntry>\n";
     }
 
     if ($page != 0) {
         $outstr .= "<SoftKeyItem>";
-        $outstr .= "  <Name>Prev</Name>";
-        $outStr .= "  <Position>1</Position>";
-        $outStr .= "  <URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
-        $outstr .= "</SoftKeyItem>";
+        $outstr .= "<Name>Prev</Name>";
+        $outStr .= "<Position>1</Position>";
+        $outStr .= "<URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outstr .= "</SoftKeyItem>\n";
     }
-    if ($numrows >= $limit){
+    if ($numrows >= $output_limit){
         $outstr .= "<SoftKeyItem>";
-        $outstr .= "  <Name>Next</Name>";
-        $outStr .= "  <Position>2</Position>";
-        $outStr .= "  <URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
-        $outstr .= "</SoftKeyItem>";
+        $outstr .= "<Name>Next</Name>";
+        $outStr .= "<Position>2</Position>";
+        $outStr .= "<URL>phonebook.php?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outstr .= "</SoftKeyItem>\n";
     }
     $outstr .= "<SoftKeyItem>";
-    $outstr .= "  <Name>Close</Name>";
-    $outStr .= "  <Position>4</Position>";
-    $outStr .= "  <URL>SoftKey:Exit</URL>";
-    $outstr .= "</SoftKeyItem>";
-    $outstr .= "</CiscoIPPhoneDirectory>";
-    return $outStr;
+    $outstr .= "<Name>Close</Name>";
+    $outstr .= "<Position>4</Position>";
+    $outstr .= "<URL>SoftKey:Exit</URL>";
+    $outstr .= "</SoftKeyItem>\n";
+    $outstr .= "</CiscoIPPhoneDirectory>\n";
+    return $outstr;
 }
 
-function search_results($device='NONE', $searchname, $page=0, $order='ASC')
+function search_results($device='NONE', $searchname, $page=0, $order="ASC")
 {
     global $searchQry, $output_limit;
-    $DB = db_connect();
+    $DB = new MyPDO();
     $stmt = $DB->prepare($searchQry);				   		// use prepared query string
-    
-    $stmt->bindParam(':searchname', $searchname, PDO::PARAM_STR);
-    $stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
-    #$stmt->bindParam(':offset', ($page * $output_limit), PDO::PARAM_INT);
-    $stmt->bindParam(':max', $output_limit, PDO::PARAM_INT);
+    $searchterm = "%$searchname%";
+    $stmt->bindParam(":searchname", $searchterm, PDO::PARAM_STR);
+    $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
+    $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
+#    $stmt->bindValue(":ordering", 'ASC');					// need to figure this out still
     
     $stmt->execute();
     $resultset = $stmt->fetchAll();
     
     $paramstr = "action=search&searchname=$searchname&order=$order&name=$device";
-    print convert_result2directory($resultset, $paramstr, $page);
+    $titlestr = "Search Directory for '$searchname'";
+    print convert_result2directory($resultset, $titlestr, $paramstr, $page);
     $stmt=NULL;
     $DB = NULL;
 }
@@ -105,12 +107,11 @@ function search_results($device='NONE', $searchname, $page=0, $order='ASC')
 function browse_company($device='NONE', $page=0, $order='ASC')
 {
     global $companyQry, $output_limit; 
-    $DB = db_connect();
+    $DB = new MyPDO();
     $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-    
-    $stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
-    #$stmt->bindParam(':offset', ($page * $output_limit), PDO::PARAM_INT);
-    $stmt->bindParam(':max', $output_limit, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
+    $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
+    #$stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
     
     $stmt->execute();
     $resultset = $stmt->fetchAll();
