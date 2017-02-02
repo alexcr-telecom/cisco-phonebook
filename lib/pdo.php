@@ -1,6 +1,21 @@
 <?php
 require_once (dirname(__FILE__) . "/../conf/config.php");
 
+function get_schemaurl(){
+    $path = "";
+    if(isset($_SERVER['HTTP_HOST'])) {
+        if(isset($_SERVER['HTTPS'])){
+            $protocol = ($_SERVER['HTTPS'] && $_SERVER['HTTPS'] != "off") ? "https" : "http";
+        } else {
+            $protocol = 'http';
+        }
+        $path = $protocol . "://" . $_SERVER['HTTP_HOST'];
+    } else{
+        $path = dirname(__DIR__);
+    }
+    return $path . "/lib/CiscoIpPhone.xsd";
+}
+
 function get_baseurl(){
     if(isset($_SERVER['HTTP_HOST'])) {
         if(isset($_SERVER['HTTPS'])){
@@ -10,7 +25,7 @@ function get_baseurl(){
         }
         return $protocol . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['SCRIPT_NAME'];
     } else{
-        return __FILE__;
+        return dirname(__DIR__) . "/phonebook.php";
     }
 }
 

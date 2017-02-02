@@ -5,9 +5,10 @@ require_once (dirname(__FILE__) . "/lib/pdo.php");
 
 function main_menu($device='NONE')
 {
+    $schemaurl = get_schemaurl();
     $baseurl = get_baseurl();
     $outstr = 
-"<CiscoIPPhoneMenu>
+"<CiscoIPPhoneMenu xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>
         <Title>Company Services</Title>
         <Prompt>Please select one</Prompt>
         <MenuItem>
@@ -30,7 +31,7 @@ function search_menu($device='NONE')
 {
     $baseurl = get_baseurl();
     $outstr = 
-"<CiscoIPPhoneInput>
+"<CiscoIPPhoneInput> xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>
         <Prompt>Enter first letters to search</Prompt>
         <URL>$baseurl?action=search</URL>
         <InputItem>
@@ -53,7 +54,7 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
         throw new Exception('No Results');
         exit();
     }
-    $outstr .= "<CiscoIPPhoneDirectory>\n";
+    $outstr .= "<CiscoIPPhoneDirectory xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     foreach($resultset as $row) {
@@ -135,7 +136,7 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $b
         throw new Exception('No Results');
         exit();
     }
-    $outstr .= "<CiscoIPPhoneMenu>\n";
+    $outstr .= "<CiscoIPPhoneMenu xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>\n";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     if ($page > 0) {
