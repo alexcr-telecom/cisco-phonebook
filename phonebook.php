@@ -1,14 +1,14 @@
 <?php
-require_once (dirname(__FILE__) . "/lib/header.php");
 require_once (dirname(__FILE__) . "/conf/config.php");
+require_once (dirname(__FILE__) . "/lib/header.php");
 require_once (dirname(__FILE__) . "/lib/pdo.php");
 
 function main_menu()
 {
-    $schemaurl = get_schemaurl();
+    global $schema;
     $baseurl = get_baseurl();
     $outstr = 
-"<CiscoIPPhoneMenu xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>
+"<CiscoIPPhoneMenu$schema>
         <Title>Company Services</Title>
         <Prompt>Please select one</Prompt>
         <MenuItem>
@@ -29,11 +29,12 @@ function main_menu()
 
 function search_menu($device='NONE')
 {
+    global $schema;
     $baseurl = get_baseurl();
     $outstr = 
-"<CiscoIPPhoneInput> xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>
+"<CiscoIPPhoneInput$schema>
         <Prompt>Enter first letters to search</Prompt>
-        <URL>$baseurl?action=search&amp;name=##DEVICE##</URL>
+        <URL>$baseurl?action=search</URL>
         <InputItem>
                 <DisplayName>Name</DisplayName>
                 <QueryStringParam>searchname</QueryStringParam>
@@ -46,7 +47,7 @@ function search_menu($device='NONE')
 
 function convert_result2directory($resultset, $title, $paramstr, $page)
 {
-    global $output_limit;
+    global $schema, $output_limit;
     $path = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
@@ -54,7 +55,7 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
         throw new Exception('No Results');
         exit();
     }
-    $outstr .= "<CiscoIPPhoneDirectory xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>";
+    $outstr .= "<CiscoIPPhoneDirectory$schema>\n";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     foreach($resultset as $row) {
@@ -128,7 +129,7 @@ function search_results($searchBy, $searchname, $page, $orderBy, $order)
 
 function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block)
 {
-    global $output_limit;
+    global $schema, $output_limit;
     $baseurl = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
@@ -136,7 +137,7 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $b
         throw new Exception('No Results');
         exit();
     }
-    $outstr .= "<CiscoIPPhoneMenu xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>\n";
+    $outstr .= "<CiscoIPPhoneMenu$schema>\n";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     if ($page > 0) {
@@ -231,8 +232,6 @@ function browse_company($searchBy, $orderBy, $page, $block)
 $action = @$_REQUEST['action'] ?: $default_action;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
-$browser = $_SERVER ['HTTP_USER_AGENT'];
-
 switch($action) {
     case "search":
         $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;

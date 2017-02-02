@@ -3,14 +3,26 @@
     <xsl:output method="html" indent="yes"/>
     <xsl:template match="/">
         <xsl:for-each select="CiscoIPPhoneMenu">
-            <b><xsl:value-of select="Title"/></b><br/>
-            <xsl:variable name="hasPrompt" select="Prompt"/>
-            <xsl:if test="$hasPrompt"><small style="padding-left:20px;"><xsl:value-of select="Prompt"/></small><br/></xsl:if>
-            <ul>
-            <xsl:for-each select="MenuItem">
-                <li><a><xsl:attribute name="href"><xsl:value-of select="URL"/></xsl:attribute><xsl:value-of select="Name"/></a></li>
-            </xsl:for-each>
-            </ul>
+	    <form name="cisco-xml-form" method="POST"><xsl:attribute name="action"><xsl:value-of select="URL"/></xsl:attribute>
+              <table style="width:100%">
+                <tr><td><b><xsl:value-of select="Title"/></b></td></tr>
+                <xsl:variable name="hasPrompt" select="Prompt"/>
+                <xsl:if test="$hasPrompt"><tr><td><small style="padding-left:20px;"><xsl:value-of select="Prompt"/></small></td></tr></xsl:if>
+                <xsl:for-each select="MenuItem">
+                   <tr><td><a><xsl:attribute name="href"><xsl:value-of select="URL"/></xsl:attribute><xsl:value-of select="Name"/></a></td></tr>
+                </xsl:for-each>
+                <xsl:variable name="hasSoftKeys" select="SoftKeyItem"/>
+                <xsl:if test="$hasSoftKeys">
+                  <tr>
+                  <table><tr>
+                  <xsl:for-each select="SoftKeyItem">
+                    <td><a><xsl:attribute name="href"><xsl:value-of select="URL"/></xsl:attribute><xsl:value-of select="Name"/></a></td>
+                  </xsl:for-each>
+                  </tr></table>
+                  </tr>
+                </xsl:if>
+              </table>
+            </form>
         </xsl:for-each>
         <xsl:for-each select="CiscoIPPhoneText">
             <b><xsl:value-of select="Title"/></b><br/>

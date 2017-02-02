@@ -17,6 +17,7 @@
     $email = "root@localhost";
     $debug = 1;
     $output_limit = 32;
+    $render_html = 1;
 
     # query definitions
     $searchQry = "SELECT info as phonenumber, firstname, lastname
