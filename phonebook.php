@@ -235,6 +235,7 @@ switch($action) {
         $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
         $searchname = @$_REQUEST['searchname'] ?: $default_searchname;
         $orderBy = @$_REQUEST['orderBy'] ?: $default_orderby;
+        $order = @$_REQUEST['order'] ?: $default_order;
         $page = @$_REQUEST['page'] ?: 0;
         if ($searchname == "NONE") {
             search_menu($device);

@@ -38,11 +38,20 @@
     $default_searchby = "lastname";
     $default_orderby = "lastname";
     $default_block = "AG";
-    
-    #test
-    #$default_action = "company";
-    #$default_searchname = "";
-    #$default_searchby = "lastname";
-    #$default_orderby = "lastname";
-    #$default_block = "AG";
+    $default_order = "ASC";
+
+    #testing
+    /*
+    $default_action = "search";
+    $default_searchname = "g";
+    $default_searchby = "lastname";
+    $default_orderby = "lastname";
+    */
+
+    /*
+    $default_action = "company";
+    $default_searchname = "";
+    $default_searchby = "lastname";
+    $default_orderby = "lastname";
+    */
 ?>
