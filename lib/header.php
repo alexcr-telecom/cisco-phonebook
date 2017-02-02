@@ -18,7 +18,7 @@
     } else{
         $path = dirname(__DIR__);
     }
-    $schema = "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$path/lib/CiscoIpPhone.xsd'";
+    $schema = " xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$path/lib/CiscoIpPhone.xsd'";
     print "<?xml-stylesheet type='text/xsl' href='$path/lib/CiscoIPPhone.xslt'?>";
   }
 ?>
