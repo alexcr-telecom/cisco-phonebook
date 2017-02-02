@@ -15,12 +15,12 @@ function main_menu($device='NONE')
                 <URL>$baseurl?action=search&amp;device=$device</URL>
         </MenuItem>
         <MenuItem>
-                <Name>View Company Directory</Name>
-                <URL>$baseurl?action=company&amp;device=$device</URL>
+                <Name>View Company Directory by Lastname</Name>
+                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;device=$device</URL>
         </MenuItem>
         <MenuItem>
-                <Name>View Directory Backwards</Name>
-                <URL>$baseurl?action=company&amp;order=reverse&amp;device=$device</URL>
+                <Name>View Company Directory by Firstname</Name>
+                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;device=$device</URL>
         </MenuItem>
 </CiscoIPPhoneMenu>\n";
     print($outstr);
@@ -100,14 +100,17 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
     return $outstr;
 }
 
-function search_results($device, $searchname, $page, $orderBy, $order)
+function search_results($device, $searchBy, $searchname, $page, $orderBy, $order)
 {
     global $searchQry, $output_limit;
     $DB = new MyPDO();
+
+    $searchQry = str_replace("{{searchBy}}", $searchBy, $searchQry);		// created a fieldname placeholder
+    
     $stmt = $DB->prepare($searchQry);				   		// use prepared query string
     $searchterm = "%$searchname%";
-    $stmt->bindParam(":searchname", $searchterm, PDO::PARAM_STR);
-    $stmt->bindParam(":orderBy", $orderBy, PDO::PARAM_STR);
+    $stmt->bindValue(":searchname", $searchterm, PDO::PARAM_STR);
+    $stmt->bindValue(":orderBy", $orderBy, PDO::PARAM_STR);
     $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
     $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
 #    $stmt->bindValue(":ordering", 'ASC');					// need to figure this out still
@@ -122,7 +125,7 @@ function search_results($device, $searchname, $page, $orderBy, $order)
     $DB = NULL;
 }
 
-function convert_result2menu($resultset, $title, $paramstr, $page, $block)
+function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block)
 {
     global $output_limit;
     $baseurl = get_baseurl();
@@ -138,19 +141,19 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
     if ($page > 0) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>Previous</Name>";
-        $outstr .= "<URL>$baseurl?action=company&amp;$paramstr&amp;block=$block;page=" . $page - 1 ."</URL>";
+        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=$block;page=" . $page - 1 ."</URL>";
         $outstr .= "</MenuItem>\n";
     }
     foreach($resultset as $row) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>" . $row['firstname'] . ' ' . $row['lastname'] . "</Name>";
-        $outstr .= "<URL>QueryStringParam:id=" . $row['id'] . "</URL>";
+        $outstr .= "<URL>QueryStringParam:searchname=" . $row['id'] . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
     if ($numrows >= $output_limit){
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>Next</Name>";
-        $outstr .= "<URL>$baseurl?action=company&$paramstr&amp;block=$block;page=" . $page + 1 ."</URL>";
+        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=$block;page=" . $page + 1 ."</URL>";
         $outstr .= "</MenuItem>\n";
     }
 
@@ -159,7 +162,7 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[A-G]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;$paramstr&amp;block=AG</URL>";
+        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=AG</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -167,7 +170,7 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[H-O]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;$paramstr&amp;block=HO</URL>";
+        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=HO</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -175,7 +178,7 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[P-Z]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;$paramstr&amp;block=PZ</URL>";
+        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=PZ</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -183,7 +186,7 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
     $outstr .= "<SoftKeyItem>";
     $outstr .= "<Name>Choose</Name>";
     $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=search&amp;$paramstr</URL>";
+    $outstr .= "<URL>$baseurl?action=search&amp;searchBy=id&amp;$paramstr</URL>";
     $outstr .= "</SoftKeyItem>\n";
     $pos++;
     
@@ -197,22 +200,28 @@ function convert_result2menu($resultset, $title, $paramstr, $page, $block)
     return $outstr;
 }
 
-function browse_company($device, $page, $orderBy, $order, $block)
+function browse_company($device, $searchBy, $orderBy, $page, $block)
 {
-    global $companyQry, $output_limit; 
-    $DB = new MyPDO();
+    global $companyQry, $output_limit, $debug; 
+    $DB = new MyPDO($debug);
+    
+    $firstletter=substr($block, 0, 1);
+    $lastletter=substr($block, -1);
+    
+    $companyQry = str_replace("{{searchBy}}", $searchBy, $companyQry);		// created a fieldname placeholder
     $stmt = $DB->prepare($companyQry);				   		// use prepared query string
-    $stmt->bindParam(":orderBy", $orderBy, PDO::PARAM_STR);
+    $stmt->bindValue(":firstletter", $firstletter, PDO::PARAM_STR);
+    $stmt->bindValue(":lastletter", $lastletter, PDO::PARAM_STR);
+    $stmt->bindValue(":orderBy", $orderBy, PDO::PARAM_STR);
     $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
     $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
-    #$stmt->bindParam(':ordering', $order, PDO::PARAM_STR);
-    
     $stmt->execute();
+
     $resultset = $stmt->fetchAll();
 
-    $paramstr = htmlentities("orderBy=$orderBy&order=$order&name=$device");
-    $title = "Company Directory";
-    print convert_result2menu($resultset, $title, $paramstr, $page, $block);
+    $paramstr = htmlentities("orderBy=$orderBy&name=$device");
+    $title = "Company Directory by $orderBy";
+    print convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block);
     $stmt=NULL;
     $DB = NULL;
 }
@@ -223,23 +232,23 @@ $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
 switch($action) {
     case "search":
+        $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
         $searchname = @$_REQUEST['searchname'] ?: $default_searchname;
+        $orderBy = @$_REQUEST['orderBy'] ?: $default_orderby;
         $page = @$_REQUEST['page'] ?: 0;
-        $orderBy = @$_REQUEST['orderBy'] ?: 'lastname';
-        $order = @$_REQUEST['order'] ?: 'ASC';
         if ($searchname == "NONE") {
             search_menu($device);
         } else {
-            search_results($device, $searchname, $page, $orderBy, $order);
+            search_results($device, $searchBy, $searchname, $page, $orderBy, $order);
         }
         break;
 
     case "company":
+        $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
+        $orderBy = @$_REQUEST['orderBy'] ?: $default_searchby;
+        $block = @$_REQUEST['block'] ?: $default_block;
         $page = @$_REQUEST['page'] ?: 0;
-        $orderBy = @$_REQUEST['orderBy'] ?: 'lastname';
-        $order = @$_REQUEST['order'] ?: 'ASC';
-        $block = @$_REQUEST['block'] ?: 'AG';
-        browse_company($device, $page, $orderBy, $order, $block);
+        browse_company($device, $searchBy, $orderBy, $page, $block);
         break;
         
     case "mainmenu":
