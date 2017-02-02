@@ -3,7 +3,7 @@ require_once (dirname(__FILE__) . "/conf/config.php");
 require_once (dirname(__FILE__) . "/lib/header.php");
 require_once (dirname(__FILE__) . "/lib/pdo.php");
 
-function main_menu()
+function main_menu($devicelocale)
 {
     global $schema;
     $baseurl = get_baseurl();
@@ -13,28 +13,28 @@ function main_menu()
         <Prompt>Please select one</Prompt>
         <MenuItem>
                 <Name>Search Company Directory</Name>
-                <URL>$baseurl?action=search&amp;device=##DEVICE##</URL>
+                <URL>$baseurl?action=search&amp;$devicelocale</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Lastname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;name=##DEVICE##</URL>
+                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;$devicelocale</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Firstname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;name=##DEVICE##</URL>
+                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;$devicelocale</URL>
         </MenuItem>
 </CiscoIPPhoneMenu>\n";
     print($outstr);
 }
 
-function search_menu($device='NONE')
+function search_menu($devicelocale)
 {
     global $schema;
     $baseurl = get_baseurl();
     $outstr = 
 "<CiscoIPPhoneInput$schema>
         <Prompt>Enter first letters to search</Prompt>
-        <URL>$baseurl?action=search</URL>
+        <URL>$baseurl?action=search&amp;$devicelocale</URL>
         <InputItem>
                 <DisplayName>Name</DisplayName>
                 <QueryStringParam>searchname</QueryStringParam>
@@ -48,7 +48,7 @@ function search_menu($device='NONE')
 function convert_result2directory($resultset, $title, $paramstr, $page)
 {
     global $schema, $output_limit;
-    $path = get_baseurl();
+    $baseurl = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
     if ($numrows == 0) {
@@ -65,44 +65,53 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
         $outstr .= "</DirectoryEntry>\n";
     }
 
+    $pos = 1;
     $outstr .= "<SoftKeyItem>";
     $outstr .= "<Name>Dial</Name>";
-    $outstr .= "<Position>1</Position>";
+    $outstr .= "<Position>$pos</Position>";
     $outstr .= "<URL>SoftKey:Dial</URL>";
     $outstr .= "</SoftKeyItem>\n";
+    $pos++;
 
     $outstr .= "<SoftKeyItem>";
     $outstr .= "<Name>EditDial</Name>";
     $outstr .= "<URL>SoftKey:EditDial</URL>";
-    $outstr .= "<Position>2</Position>";
+    $outstr .= "<Position>$pos</Position>";
     $outstr .= "</SoftKeyItem>";
+    $pos++;
 
     if ($page != 0) {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>Prev</Name>";
-        $outstr .= "<Position>2</Position>";
-        $outstr .= "<URL>$baseurl?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outstr .= "<Position>$pos</Position>";
+        $url = htmlentities("$baseurl?page=" . ($page - 1) . "&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
+        $pos++;
     }
  
     if ($numrows >= $output_limit){
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>Next</Name>";
-        $outstr .= "<Position>3</Position>";
-        $outstr .= "<URL>$baseurl?" . htmlentities($paramstr) . "&amp;page=" . $page - 1 ."</URL>";
+        $outstr .= "<Position>$pos</Position>";
+        $url = htmlentities("$baseurl?page=" . ($page + 1) . "&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
+        $pos++;
     }
 
     $outstr .= "<SoftKeyItem>";
-    $outstr .= "<Name>Close</Name>";
-    $outstr .= "<Position>4</Position>";
+    $outstr .= "<Name>Back</Name>";
+    $outstr .= "<Position>$pos</Position>";
     $outstr .= "<URL>SoftKey:Exit</URL>";
     $outstr .= "</SoftKeyItem>\n";
+    $pos++;
+
     $outstr .= "</CiscoIPPhoneDirectory>\n";
     return $outstr;
 }
 
-function search_results($searchBy, $searchname, $page, $orderBy, $order)
+function search_results($searchBy, $searchname, $page, $orderBy, $order, $devicelocale)
 {
     global $searchQry, $output_limit;
     $DB = new MyPDO();
@@ -120,51 +129,58 @@ function search_results($searchBy, $searchname, $page, $orderBy, $order)
     $stmt->execute();
     $resultset = $stmt->fetchAll();
     
-    $paramstr = htmlentities("action=search&searchname=$searchname&orderBy=$orderBy&order=$order&name=##DEVICE##");
+    $paramstr = "action=search&searchname=$searchname&orderBy=$orderBy&order=$order&$devicelocale";
     $titlestr = "Search Directory for '$searchname'";
     print convert_result2directory($resultset, $titlestr, $paramstr, $page);
     $stmt=NULL;
     $DB = NULL;
 }
 
-function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block)
+function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0, $block)
 {
     global $schema, $output_limit;
     $baseurl = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
-    if ($numrows == 0) {
-        throw new Exception('No Results');
-        exit();
-    }
     $outstr .= "<CiscoIPPhoneMenu$schema>\n";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
     if ($page > 0) {
         $outstr .= "<MenuItem>";
-        $outstr .= "<Name>Previous</Name>";
-        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=$block;page=" . $page - 1 ."</URL>";
+        $outstr .= "<Name>&lt;&lt; Previous Page</Name>";
+        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=$block&page=" . ($page - 1) . "&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</MenuItem>\n";
     }
     foreach($resultset as $row) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>" . $row['firstname'] . ' ' . $row['lastname'] . "</Name>";
-        $outstr .= "<URL>QueryStringParam:searchname=" . $row['id'] . "</URL>";
+        $url = htmlentities("$baseurl?action=search&searchBy=id&searchname=" . $row['id'] . "&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</MenuItem>\n";
     }
     if ($numrows >= $output_limit){
         $outstr .= "<MenuItem>";
-        $outstr .= "<Name>Next</Name>";
-        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=$block;page=" . $page + 1 ."</URL>";
+        $outstr .= "<Name>Next Page &gt;&gt;</Name>";
+        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=$block&page=" . ($page + 1) . "&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</MenuItem>\n";
     }
 
     $pos = 1;
+    $outstr .= "<SoftKeyItem>";
+    $outstr .= "<Name>Choose</Name>";
+    $outstr .= "<Position>$pos</Position>";
+    $outstr .= "<URL>QueryStringParam:button=submit</URL>";
+    $outstr .= "</SoftKeyItem>\n";
+    $pos++;
+
     if ($block != 'AG') {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[A-G]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=AG</URL>";
+        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=AG&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -172,7 +188,8 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $b
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[H-O]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=HO</URL>";
+        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=HO&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -180,29 +197,24 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $b
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[P-Z]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $outstr .= "<URL>$baseurl?action=company&amp;searchBy=$searchBy&amp;$paramstr&amp;block=PZ</URL>";
+        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=PZ&$paramstr");
+        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
     
     $outstr .= "<SoftKeyItem>";
-    $outstr .= "<Name>Choose</Name>";
-    $outstr .= "<Position>$pos</Position>";
-    $outstr .= "<URL>$baseurl?action=search&amp;searchBy=id&amp;$paramstr</URL>";
-    $outstr .= "</SoftKeyItem>\n";
-    $pos++;
-    
-    $outstr .= "<SoftKeyItem>";
-    $outstr .= "<Name>Close</Name>";
+    $outstr .= "<Name>Back</Name>";
     $outstr .= "<Position>$pos</Position>";
     $outstr .= "<URL>SoftKey:Exit</URL>";
     $outstr .= "</SoftKeyItem>\n";
-    
+    $pos++;
+
     $outstr .= "</CiscoIPPhoneMenu>\n";
     return $outstr;
 }
 
-function browse_company($searchBy, $orderBy, $page, $block)
+function browse_company($searchBy, $orderBy, $page, $block, $devicelocale)
 {
     global $companyQry, $output_limit, $debug; 
     $DB = new MyPDO($debug);
@@ -221,7 +233,7 @@ function browse_company($searchBy, $orderBy, $page, $block)
 
     $resultset = $stmt->fetchAll();
 
-    $paramstr = htmlentities("orderBy=$orderBy&name=$device&name=##DEVICE##");
+    $paramstr = "orderBy=$orderBy&$devicelocale";
     $title = "Company Directory by $orderBy";
     print convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block);
     $stmt=NULL;
@@ -232,17 +244,18 @@ function browse_company($searchBy, $orderBy, $page, $block)
 $action = @$_REQUEST['action'] ?: $default_action;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
+$devicelocale = "name=$device&locale=$locale";
 switch($action) {
     case "search":
         $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
         $searchname = @$_REQUEST['searchname'] ?: $default_searchname;
         $orderBy = @$_REQUEST['orderBy'] ?: $default_orderby;
         $order = @$_REQUEST['order'] ?: $default_order;
-        $page = @$_REQUEST['page'] ?: 0;
+        $page = (int) @$_REQUEST['page'] ?: 0;
         if ($searchname == "NONE") {
             search_menu($device);
         } else {
-            search_results($searchBy, $searchname, $page, $orderBy, $order);
+            search_results($searchBy, $searchname, $page, $orderBy, $order, $devicelocale);
         }
         break;
 
@@ -250,8 +263,8 @@ switch($action) {
         $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
         $orderBy = @$_REQUEST['orderBy'] ?: $default_searchby;
         $block = @$_REQUEST['block'] ?: $default_block;
-        $page = @$_REQUEST['page'] ?: 0;
-        browse_company($searchBy, $orderBy, $page, $block);
+        $page = (int) @$_REQUEST['page'] ?: 0;
+        browse_company($searchBy, $orderBy, $page, $block, $devicelocale);
         break;
         
     case "mainmenu":
