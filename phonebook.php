@@ -8,20 +8,20 @@ function main_menu($devicelocale)
     global $schema;
     $baseurl = get_baseurl();
     $outstr = 
-"<CiscoIPPhoneMenu$schema>
+"<CiscoIPPhoneMenu>
         <Title>Company Services</Title>
         <Prompt>Please select one</Prompt>
         <MenuItem>
                 <Name>Search Company Directory</Name>
-                <URL>$baseurl?action=search&amp;$devicelocale</URL>
+                <URL>" . htmlentities("$baseurl?action=search&$devicelocale") . "</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Lastname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;$devicelocale</URL>
+                <URL>" . htmlentities("$baseurl?action=company&searchBy=lastname&orderBy=lastname&$devicelocale") . "</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Firstname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;$devicelocale</URL>
+                <URL>" . htmlentities("$baseurl?action=company&searchBy=firstname&orderBy=firstname&$devicelocale") . "</URL>
         </MenuItem>
 </CiscoIPPhoneMenu>\n";
     print($outstr);
@@ -34,7 +34,7 @@ function search_menu($devicelocale)
     $outstr = 
 "<CiscoIPPhoneInput$schema>
         <Prompt>Enter first letters to search</Prompt>
-        <URL>$baseurl?action=search&amp;$devicelocale</URL>
+        <URL>" . htmlentities("$baseurl?action=search&$devicelocale") . "</URL>
         <InputItem>
                 <DisplayName>Name</DisplayName>
                 <QueryStringParam>searchname</QueryStringParam>
@@ -253,7 +253,7 @@ switch($action) {
         $order = @$_REQUEST['order'] ?: $default_order;
         $page = (int) @$_REQUEST['page'] ?: 0;
         if ($searchname == "NONE") {
-            search_menu($device);
+            search_menu($devicelocale);
         } else {
             search_results($searchBy, $searchname, $page, $orderBy, $order, $devicelocale);
         }
@@ -269,6 +269,6 @@ switch($action) {
         
     case "mainmenu":
     default:
-        main_menu($device);
+        main_menu($devicelocale);
 }
 ?>
