@@ -3,7 +3,7 @@ require_once (dirname(__FILE__) . "/lib/header.php");
 require_once (dirname(__FILE__) . "/conf/config.php");
 require_once (dirname(__FILE__) . "/lib/pdo.php");
 
-function main_menu($device='NONE')
+function main_menu()
 {
     $schemaurl = get_schemaurl();
     $baseurl = get_baseurl();
@@ -13,15 +13,15 @@ function main_menu($device='NONE')
         <Prompt>Please select one</Prompt>
         <MenuItem>
                 <Name>Search Company Directory</Name>
-                <URL>$baseurl?action=search&amp;device=$device</URL>
+                <URL>$baseurl?action=search&amp;device=##DEVICE##</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Lastname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;device=$device</URL>
+                <URL>$baseurl?action=company&amp;searchBy=lastname&amp;orderBy=lastname&amp;name=##DEVICE##</URL>
         </MenuItem>
         <MenuItem>
                 <Name>View Company Directory by Firstname</Name>
-                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;device=$device</URL>
+                <URL>$baseurl?action=company&amp;searchBy=firstname&amp;orderBy=firstname&amp;name=##DEVICE##</URL>
         </MenuItem>
 </CiscoIPPhoneMenu>\n";
     print($outstr);
@@ -33,7 +33,7 @@ function search_menu($device='NONE')
     $outstr = 
 "<CiscoIPPhoneInput> xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='$schemaurl'>
         <Prompt>Enter first letters to search</Prompt>
-        <URL>$baseurl?action=search</URL>
+        <URL>$baseurl?action=search&amp;name=##DEVICE##</URL>
         <InputItem>
                 <DisplayName>Name</DisplayName>
                 <QueryStringParam>searchname</QueryStringParam>
@@ -101,7 +101,7 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
     return $outstr;
 }
 
-function search_results($device, $searchBy, $searchname, $page, $orderBy, $order)
+function search_results($searchBy, $searchname, $page, $orderBy, $order)
 {
     global $searchQry, $output_limit;
     $DB = new MyPDO();
@@ -119,7 +119,7 @@ function search_results($device, $searchBy, $searchname, $page, $orderBy, $order
     $stmt->execute();
     $resultset = $stmt->fetchAll();
     
-    $paramstr = htmlentities("action=search&searchname=$searchname&orderBy=$orderBy&order=$order&name=$device");
+    $paramstr = htmlentities("action=search&searchname=$searchname&orderBy=$orderBy&order=$order&name=##DEVICE##");
     $titlestr = "Search Directory for '$searchname'";
     print convert_result2directory($resultset, $titlestr, $paramstr, $page);
     $stmt=NULL;
@@ -201,7 +201,7 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $b
     return $outstr;
 }
 
-function browse_company($device, $searchBy, $orderBy, $page, $block)
+function browse_company($searchBy, $orderBy, $page, $block)
 {
     global $companyQry, $output_limit, $debug; 
     $DB = new MyPDO($debug);
@@ -220,7 +220,7 @@ function browse_company($device, $searchBy, $orderBy, $page, $block)
 
     $resultset = $stmt->fetchAll();
 
-    $paramstr = htmlentities("orderBy=$orderBy&name=$device");
+    $paramstr = htmlentities("orderBy=$orderBy&name=$device&name=##DEVICE##");
     $title = "Company Directory by $orderBy";
     print convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block);
     $stmt=NULL;
@@ -231,6 +231,8 @@ function browse_company($device, $searchBy, $orderBy, $page, $block)
 $action = @$_REQUEST['action'] ?: $default_action;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
+$browser = $_SERVER ['HTTP_USER_AGENT'];
+
 switch($action) {
     case "search":
         $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
@@ -241,7 +243,7 @@ switch($action) {
         if ($searchname == "NONE") {
             search_menu($device);
         } else {
-            search_results($device, $searchBy, $searchname, $page, $orderBy, $order);
+            search_results($searchBy, $searchname, $page, $orderBy, $order);
         }
         break;
 
@@ -250,7 +252,7 @@ switch($action) {
         $orderBy = @$_REQUEST['orderBy'] ?: $default_searchby;
         $block = @$_REQUEST['block'] ?: $default_block;
         $page = @$_REQUEST['page'] ?: 0;
-        browse_company($device, $searchBy, $orderBy, $page, $block);
+        browse_company($searchBy, $orderBy, $page, $block);
         break;
         
     case "mainmenu":
