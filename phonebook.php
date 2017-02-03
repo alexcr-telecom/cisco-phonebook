@@ -26,14 +26,14 @@ function main_menu($devicelocale)
     print($outstr);
 }
 
-function search_menu($devicelocale)
+function search_menu($params)
 {
     global $schema;
     $baseurl = get_baseurl();
     $outstr = 
 "<CiscoIPPhoneInput$schema>
         <Prompt>Enter first letters to search</Prompt>
-        <URL>" . htmlentities("$baseurl?action=search&$devicelocale") . "</URL>
+        <URL>" . $baseurl . '?' . http_build_query($params,NULL,'&amp;') . "</URL>
         <InputItem>
                 <DisplayName>Name</DisplayName>
                 <QueryStringParam>searchname</QueryStringParam>
@@ -44,7 +44,7 @@ function search_menu($devicelocale)
     print($outstr);
 }
 
-function convert_result2directory($resultset, $title, $paramstr, $page)
+function convert_result2directory($resultset, $title, $params)
 {
     global $schema;
     $baseurl = get_baseurl();
@@ -79,11 +79,12 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
     $outstr .= "</SoftKeyItem>";
     $pos++;
 
-    if ($page != 0) {
+    if ($params['page'] != 0) {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>Prev</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $url = htmlentities("$baseurl?page=" . ($page - 1) . "&$paramstr");
+        $params['page'] = ($params['page'] - 1);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
@@ -93,7 +94,8 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>Next</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $url = htmlentities("$baseurl?page=" . ($page + 1) . "&$paramstr");
+        $params['page'] = ($params['page'] + 1);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
@@ -110,18 +112,22 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
     return $outstr;
 }
 
-function search_results($searchname, $devicelocale)
+function search_results($searchname, $params)
 {
     $searchBy = @$_REQUEST['searchBy'] ?: CONFIG_DEFAULT_SEARCHBY;
     $orderBy = @$_REQUEST['orderBy'] ?: CONFIG_DEFAULT_ORDERBY;
     $page = (int) @$_REQUEST['page'] ?: 0;
-
+    
     $DB = new MyPDO();
 
     $searchQry = str_replace("{{searchBy}}", $searchBy, CONFIG_SEARCH_QUERY);	// replace a fieldname placeholder
     
     $stmt = $DB->prepare($searchQry);				   		// use prepared query string
-    $searchterm = "%$searchname%";
+    if (is_integer($searchname)) {
+        $searchterm = "$searchname";
+    } else {
+        $searchterm = "%$searchname%";
+    }
     $stmt->bindValue(":searchname", $searchterm, PDO::PARAM_STR);
     $stmt->bindValue(":orderBy", $orderBy, PDO::PARAM_STR);
     $stmt->bindValue(":offset", (int)($page * CONFIG_OUTPUT_LIMIT), PDO::PARAM_INT);
@@ -130,14 +136,17 @@ function search_results($searchname, $devicelocale)
     $stmt->execute();
     $resultset = $stmt->fetchAll();
     
-    $paramstr = "action=search&searchname=$searchname&orderBy=$orderBy&$devicelocale";
+    $params['action'] = "search";
+    $params['searchname'] = $searchname;
+    $params['orderBy'] = $orderBy;
+    $params['page'] = $page;
     $titlestr = "Search Directory for '$searchname'";
-    print convert_result2directory($resultset, $titlestr, $paramstr, $page);
+    print convert_result2directory($resultset, $titlestr, $params);
     $stmt=NULL;
     $DB = NULL;
 }
 
-function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0, $block)
+function convert_result2menu($resultset, $title, $params)
 {
     global $schema;
     $baseurl = get_baseurl();
@@ -146,25 +155,29 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0
     $outstr .= "<CiscoIPPhoneMenu$schema>\n";
     $outstr .= "<Title>$title</Title>\n";
     $outstr .= "<Prompt>Please select one</Prompt>\n";
-    if ($page > 0) {
+    if ($params['page'] > 0) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>&lt;&lt; Previous Page</Name>";
-        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=$block&page=" . ($page - 1) . "&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['page'] = $params['page'] - 1;
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
     foreach($resultset as $row) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>" . $row['firstname'] . ' ' . $row['lastname'] . "</Name>";
-        $url = htmlentities("$baseurl?action=search&searchBy=id&searchname=" . $row['id'] . "&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['action'] = 'search';
+        $params['searchBy'] = 'id';
+        $params['searchname'] = $row['id'];
+        $params['page'] = NULL;
+        $params['block'] = NULL;
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
     if ($numrows >= CONFIG_OUTPUT_LIMIT){
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>Next Page &gt;&gt;</Name>";
-        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=$block&page=" . ($page + 1) . "&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['page'] = $params['page'] - 1;
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
 
@@ -176,30 +189,30 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0
     $outstr .= "</SoftKeyItem>\n";
     $pos++;
 
-    if ($block != 'AG') {
+    if ($params['block'] != 'AG') {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[A-G]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=AG&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['block'] = 'AG';
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
-    if ($block != 'HO') {
+    if ($params['block'] != 'HO') {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[H-O]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=HO&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['block'] = 'HO';
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
-    if ($block != 'PZ') {
+    if ($params['block'] != 'PZ') {
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[P-Z]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=PZ&$paramstr");
-        $outstr .= "<URL>$url</URL>";
+        $params['block'] = 'PZ';
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -215,7 +228,7 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0
     return $outstr;
 }
 
-function browse_company($devicelocale)
+function browse_company($params)
 {
     $searchBy = @$_REQUEST['searchBy'] ?: CONFIG_DEFAULT_SEARCHBY;
     $orderBy = @$_REQUEST['orderBy'] ?: CONFIG_DEFAULT_ORDERBY;
@@ -238,9 +251,15 @@ function browse_company($devicelocale)
 
     $resultset = $stmt->fetchAll();
 
-    $paramstr = "orderBy=$orderBy&$devicelocale";
+    $params['action'] = "company";
+    $params['searchBy'] = $searchBy;
+    $params['orderBy'] = $orderBy;
+    $params['page'] = $page;
+    $params['block'] = $block;
+    
+    #$paramstr = "orderBy=$orderBy&$devicelocale";
     $title = "Company Directory by $orderBy";
-    print convert_result2menu($resultset, $title, $searchBy, $paramstr, $page, $block);
+    print convert_result2menu($resultset, $title, $params);
     $stmt=NULL;
     $DB = NULL;
 }
@@ -249,19 +268,21 @@ function browse_company($devicelocale)
 $action = @$_REQUEST['action'] ?: CONFIG_DEFAULT_ACTION;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
+$params = ['name'=>$device, 'locale'=>$locale];
 $devicelocale = "name=$device&locale=$locale";
 switch($action) {
     case "search":
         $searchname = @$_REQUEST['searchname'] ?: CONFIG_DEFAULT_SEARCHNAME;
         if (is_null($searchname) or $searchname=='') {
-            search_menu($devicelocale);
+            $params['action'] = "search";
+            search_menu($params);
         } else {
-            search_results($searchname, $devicelocale);
+            search_results($searchname, $params);
         }
         break;
 
     case "company":
-        browse_company($devicelocale);
+        browse_company($params);
         break;
         
     case "mainmenu":

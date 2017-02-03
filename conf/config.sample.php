@@ -54,6 +54,14 @@
     */
 
     /*
+    define('CONFIG_DEFAULT_ACTION', "search");
+    define('CONFIG_DEFAULT_SEARCHNAME', 1);
+    define('CONFIG_DEFAULT_SEARCHBY', "id");
+    define('CONFIG_DEFAULT_ORDERBY', "lastname");
+    define('CONFIG_DEFAULT_BLOCK', "AG");
+    */
+
+    /*
     define('CONFIG_DEFAULT_ACTION', "company");
     define('CONFIG_DEFAULT_SEARCHNAME', NULL);
     define('CONFIG_DEFAULT_SEARCHBY', "lastname");
