@@ -1,10 +1,9 @@
 <?php
   header("Content-type: text/xml");
   print "<?xml version='1.0' encoding='utf-8'?>\n";
-
   $schema = "";
   $browser = @$_SERVER ['HTTP_USER_AGENT'] ?: "NONE";
-  if ($render_html && $browser != "NONE" && substr($browser,1,7) != "Allegro") {
+  if (CONFIG_RENDERASHTML && $browser != "NONE" && substr($browser,1,7) != "Allegro") {
     header("Connection: close"); 
     header("Expires: -1");
 

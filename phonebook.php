@@ -1,7 +1,6 @@
 <?php
 require_once (dirname(__FILE__) . "/conf/config.php");
-require_once (dirname(__FILE__) . "/lib/header.php");
-require_once (dirname(__FILE__) . "/lib/pdo.php");
+require_once (dirname(__FILE__) . "/lib/lib.php");
 
 function main_menu($devicelocale)
 {
@@ -47,7 +46,7 @@ function search_menu($devicelocale)
 
 function convert_result2directory($resultset, $title, $paramstr, $page)
 {
-    global $schema, $output_limit;
+    global $schema;
     $baseurl = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
@@ -90,7 +89,7 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
         $pos++;
     }
  
-    if ($numrows >= $output_limit){
+    if ($numrows >= CONFIG_OUTPUT_LIMIT){
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>Next</Name>";
         $outstr .= "<Position>$pos</Position>";
@@ -111,25 +110,27 @@ function convert_result2directory($resultset, $title, $paramstr, $page)
     return $outstr;
 }
 
-function search_results($searchBy, $searchname, $page, $orderBy, $order, $devicelocale)
+function search_results($searchname, $devicelocale)
 {
-    global $searchQry, $output_limit;
+    $searchBy = @$_REQUEST['searchBy'] ?: CONFIG_DEFAULT_SEARCHBY;
+    $orderBy = @$_REQUEST['orderBy'] ?: CONFIG_DEFAULT_ORDERBY;
+    $page = (int) @$_REQUEST['page'] ?: 0;
+
     $DB = new MyPDO();
 
-    $searchQry = str_replace("{{searchBy}}", $searchBy, $searchQry);		// created a fieldname placeholder
+    $searchQry = str_replace("{{searchBy}}", $searchBy, CONFIG_SEARCH_QUERY);	// replace a fieldname placeholder
     
     $stmt = $DB->prepare($searchQry);				   		// use prepared query string
     $searchterm = "%$searchname%";
     $stmt->bindValue(":searchname", $searchterm, PDO::PARAM_STR);
     $stmt->bindValue(":orderBy", $orderBy, PDO::PARAM_STR);
-    $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
-    $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
-#    $stmt->bindValue(":ordering", 'ASC');					// need to figure this out still
+    $stmt->bindValue(":offset", (int)($page * CONFIG_OUTPUT_LIMIT), PDO::PARAM_INT);
+    $stmt->bindValue(":max", (int)CONFIG_OUTPUT_LIMIT, PDO::PARAM_INT);
     
     $stmt->execute();
     $resultset = $stmt->fetchAll();
     
-    $paramstr = "action=search&searchname=$searchname&orderBy=$orderBy&order=$order&$devicelocale";
+    $paramstr = "action=search&searchname=$searchname&orderBy=$orderBy&$devicelocale";
     $titlestr = "Search Directory for '$searchname'";
     print convert_result2directory($resultset, $titlestr, $paramstr, $page);
     $stmt=NULL;
@@ -138,7 +139,7 @@ function search_results($searchBy, $searchname, $page, $orderBy, $order, $device
 
 function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0, $block)
 {
-    global $schema, $output_limit;
+    global $schema;
     $baseurl = get_baseurl();
     $outstr = "";
     $numrows = count($resultset);
@@ -159,7 +160,7 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0
         $outstr .= "<URL>$url</URL>";
         $outstr .= "</MenuItem>\n";
     }
-    if ($numrows >= $output_limit){
+    if ($numrows >= CONFIG_OUTPUT_LIMIT){
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>Next Page &gt;&gt;</Name>";
         $url = htmlentities("$baseurl?action=company&searchBy=$searchBy&block=$block&page=" . ($page + 1) . "&$paramstr");
@@ -214,21 +215,25 @@ function convert_result2menu($resultset, $title, $searchBy, $paramstr, $page = 0
     return $outstr;
 }
 
-function browse_company($searchBy, $orderBy, $page, $block, $devicelocale)
+function browse_company($devicelocale)
 {
-    global $companyQry, $output_limit, $debug; 
-    $DB = new MyPDO($debug);
+    $searchBy = @$_REQUEST['searchBy'] ?: CONFIG_DEFAULT_SEARCHBY;
+    $orderBy = @$_REQUEST['orderBy'] ?: CONFIG_DEFAULT_ORDERBY;
+    $block = @$_REQUEST['block'] ?: CONFIG_DEFAULT_BLOCK;
+    $page = (int) @$_REQUEST['page'] ?: 0;
+    
+    $DB = new MyPDO();
     
     $firstletter=substr($block, 0, 1);
     $lastletter=substr($block, -1);
     
-    $companyQry = str_replace("{{searchBy}}", $searchBy, $companyQry);		// created a fieldname placeholder
+    $companyQry = str_replace("{{searchBy}}", $searchBy, CONFIG_COMPANY_QUERY);	// replace a fieldname placeholder
     $stmt = $DB->prepare($companyQry);				   		// use prepared query string
     $stmt->bindValue(":firstletter", $firstletter, PDO::PARAM_STR);
     $stmt->bindValue(":lastletter", $lastletter, PDO::PARAM_STR);
     $stmt->bindValue(":orderBy", $orderBy, PDO::PARAM_STR);
-    $stmt->bindValue(":offset", (int)($page * $output_limit), PDO::PARAM_INT);
-    $stmt->bindValue(":max", (int)$output_limit, PDO::PARAM_INT);
+    $stmt->bindValue(":offset", (int)($page * CONFIG_OUTPUT_LIMIT), PDO::PARAM_INT);
+    $stmt->bindValue(":max", (int)CONFIG_OUTPUT_LIMIT, PDO::PARAM_INT);
     $stmt->execute();
 
     $resultset = $stmt->fetchAll();
@@ -241,30 +246,22 @@ function browse_company($searchBy, $orderBy, $page, $block, $devicelocale)
 }
 
 // MAIN
-$action = @$_REQUEST['action'] ?: $default_action;
+$action = @$_REQUEST['action'] ?: CONFIG_DEFAULT_ACTION;
 $locale = @$_REQUEST['locale'] ?: 'English_United_States';
 $device = @$_REQUEST['name'] ?: 'NONE';
 $devicelocale = "name=$device&locale=$locale";
 switch($action) {
     case "search":
-        $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
-        $searchname = @$_REQUEST['searchname'] ?: $default_searchname;
-        $orderBy = @$_REQUEST['orderBy'] ?: $default_orderby;
-        $order = @$_REQUEST['order'] ?: $default_order;
-        $page = (int) @$_REQUEST['page'] ?: 0;
-        if ($searchname == "NONE") {
+        $searchname = @$_REQUEST['searchname'] ?: CONFIG_DEFAULT_SEARCHNAME;
+        if (is_null($searchname) or $searchname=='') {
             search_menu($devicelocale);
         } else {
-            search_results($searchBy, $searchname, $page, $orderBy, $order, $devicelocale);
+            search_results($searchname, $devicelocale);
         }
         break;
 
     case "company":
-        $searchBy = @$_REQUEST['searchBy'] ?: $default_searchby;
-        $orderBy = @$_REQUEST['orderBy'] ?: $default_searchby;
-        $block = @$_REQUEST['block'] ?: $default_block;
-        $page = (int) @$_REQUEST['page'] ?: 0;
-        browse_company($searchBy, $orderBy, $page, $block, $devicelocale);
+        browse_company($devicelocale);
         break;
         
     case "mainmenu":

@@ -1,18 +1,20 @@
 CREATE TABLE contact (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  firstname VARCHAR(15) DEFAULT NULL,
-  lastname VARCHAR(15) DEFAULT NULL
+  firstname VARCHAR(20) DEFAULT NULL,
+  middlename VARCHAR(7) DEFAULT NULL,
+  lastname VARCHAR(20) DEFAULT NULL
 );
 
 CREATE TABLE contacttype (
-  type VARCHAR(20) PRIMARY KEY NOT NULL
+  type VARCHAR(20) PRIMARY KEY NOT NULL,
+  abbreviation VARCHAR(2) NOT NULL
 );
 
-INSERT INTO contacttype(type) VALUES ('homephone');
-INSERT INTO contacttype(type) VALUES ('workphone');
-INSERT INTO contacttype(type) VALUES ('mobilephone');
-INSERT INTO contacttype(type) VALUES ('otherphone');
-INSERT INTO contacttype(type) VALUES ('email');
+INSERT INTO contacttype VALUES ('HomePhone', 'H');
+INSERT INTO contacttype VALUES ('WorkPhone', 'W');
+INSERT INTO contacttype VALUES ('MobilePhone', 'M');
+INSERT INTO contacttype VALUES ('OtherPhone', 'O');
+INSERT INTO contacttype VALUES ('Email', 'E');
 
 CREATE TABLE contactinfo (
   contact_id INTEGER NOT NULL,

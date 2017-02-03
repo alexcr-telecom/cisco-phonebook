@@ -1,20 +1,26 @@
-INSERT INTO contact(firstname, lastname) VALUES('diederik', 'groot, de');
-INSERT INTO contact(firstname, lastname) VALUES('frank', 'williams');
-INSERT INTO contact(firstname, lastname) VALUES('gary', 'baron');
-INSERT INTO contact(firstname, lastname) VALUES('johan', 'bach');
+INSERT INTO contact(firstname, middlename, lastname) VALUES('Diederik', 'de', 'Groot');
+INSERT INTO contact(firstname, middlename, lastname) VALUES('Frank', NULL, 'Williams');
+INSERT INTO contact(firstname, middlename, lastname) VALUES('Gary', NULL, 'Baron');
+INSERT INTO contact(firstname, middlename, lastname) VALUES('Johan', NULL, 'Bach');
+INSERT INTO contact(firstname, middlename, lastname) VALUES('Derk', NULL, 'Zambo');
 
-INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'homephone', '+31-11-13456778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'mobilephone', '+31-06-23356778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'otgerphone', '+31-45-3434356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'HomePhone', '+31-11-13456778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'MobilePhone', '+31-06-23356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(0, 'OtherPhone', '+31-45-3434356778');
 
-INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'homephone', '+32-11-13456778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'mobilephone', '+32-06-23356778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'otgerphone', '+32-45-3434356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'HomePhone', '+32-11-13456778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'MobilePhone', '+32-06-23356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(1, 'OtherPhone', '+32-45-3434356778');
 
-INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'homephone', '+33-11-13456778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'mobilephone', '+33-06-23356778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'otgerphone', '+33-45-3434356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'HomePhone', '+33-11-13456778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'MobilePhone', '+33-06-23356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(2, 'OtherPhone', '+33-45-3434356778');
 
-INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'homephone', '+34-11-13456778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'mobilephone', '+34-06-23356778');
-INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'otgerphone', '+34-45-3434356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'HomePhone', '+34-11-13456778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'MobilePhone', '+34-06-23356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(3, 'OtherPhone', '+34-45-3434356778');
+
+INSERT INTO contactinfo(contact_id, type, info) VALUES(4, 'HomePhone', '+35-11-13456778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(4, 'MobilePhone', '+35-06-23356778');
+INSERT INTO contactinfo(contact_id, type, info) VALUES(4, 'OtherPhone', '+35-45-3434356778');
+
