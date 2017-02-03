@@ -18,7 +18,7 @@
 
     define('CONFIG_EMAIL', "root@localhost");
     define('CONFIG_DEBUG',  True);
-    define('CONFIG_OUTPUT_LIMIT', 32);
+    define('CONFIG_OUTPUT_LIMIT', 30);
     define('CONFIG_RENDERASHTML', False);
 
     # query definitions

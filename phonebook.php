@@ -85,7 +85,6 @@ function convert_result2directory($resultset, $title, $params)
         $outstr .= "<Position>$pos</Position>";
         $params['page'] = ($params['page'] - 1);
         $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
-        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -96,7 +95,6 @@ function convert_result2directory($resultset, $title, $params)
         $outstr .= "<Position>$pos</Position>";
         $params['page'] = ($params['page'] + 1);
         $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
-        $outstr .= "<URL>$url</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -158,26 +156,22 @@ function convert_result2menu($resultset, $title, $params)
     if ($params['page'] > 0) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>&lt;&lt; Previous Page</Name>";
-        $params['page'] = $params['page'] - 1;
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['page'=>$params['page'] - 1]);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
     foreach($resultset as $row) {
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>" . $row['firstname'] . ' ' . $row['lastname'] . "</Name>";
-        $params['action'] = 'search';
-        $params['searchBy'] = 'id';
-        $params['searchname'] = $row['id'];
-        $params['page'] = NULL;
-        $params['block'] = NULL;
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['action'=>'search', 'searchBy'=>'id', 'searchname'=>$row['id'], 'page'=>NULL, 'block'=>NULL]);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
     if ($numrows >= CONFIG_OUTPUT_LIMIT){
         $outstr .= "<MenuItem>";
         $outstr .= "<Name>Next Page &gt;&gt;</Name>";
-        $params['page'] = $params['page'] - 1;
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['page'=>$params['page'] + 1]);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</MenuItem>\n";
     }
 
@@ -193,8 +187,8 @@ function convert_result2menu($resultset, $title, $params)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[A-G]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $params['block'] = 'AG';
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['block'=>'AG']);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -202,8 +196,8 @@ function convert_result2menu($resultset, $title, $params)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[H-O]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $params['block'] = 'HO';
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['block'=>'HO']);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
@@ -211,8 +205,8 @@ function convert_result2menu($resultset, $title, $params)
         $outstr .= "<SoftKeyItem>";
         $outstr .= "<Name>[P-Z]</Name>";
         $outstr .= "<Position>$pos</Position>";
-        $params['block'] = 'PZ';
-        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($params, NULL, '&amp;') . "</URL>";
+        $local_params = array_merge($params, ['block'=>'PZ']);
+        $outstr .= "<URL>" . $baseurl . '?' . http_build_query($local_params, NULL, '&amp;') . "</URL>";
         $outstr .= "</SoftKeyItem>\n";
         $pos++;
     }
